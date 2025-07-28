@@ -1,0 +1,250 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id             String    @id @default(cuid())
+  username       String    @unique
+  email          String    @unique
+  passwordHash   String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  tasks          Task[]
+  objectives     Objective[]
+  reminders      Reminder[]
+  meetings       Meeting[]
+  notes          Note[]
+  workSessions   WorkSession[]
+  settings       Settings?
+  dailyStats     DailyStats[]
+  logs           Log[]
+
+  @@map("users")
+}
+
+model Task {
+  id            String      @id @default(cuid())
+  title         String
+  description   String?
+  priority      Priority    @default(MEDIUM)
+  status        TaskStatus  @default(BACKLOG)
+  limitDate     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  // Additional task data
+  details       String?     // Markdown content
+  peopleHelp    String[]    // Array of people who can help
+  timeNeeded    Int?        // Estimated minutes
+  purpose       String?     // What this task is for
+  existing      String?     // Existing solutions/resources
+  complexities  String?     // Possible complexities
+  resources     Json?       // Files, images, links
+  
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("tasks")
+}
+
+model Objective {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  deadline      DateTime
+  completed     Boolean   @default(false)
+  priority      Priority  @default(MEDIUM)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Additional objective data
+  details       String?   // Markdown content
+  peopleHelp    String[]  // Array of people who can help
+  timeNeeded    Int?      // Estimated minutes
+  purpose       String?   // What this objective is for
+  existing      String?   // Existing solutions/resources
+  complexities  String?   // Possible complexities
+  resources     Json?     // Files, images, links
+  
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("objectives")
+}
+
+model Reminder {
+  id            String    @id @default(cuid())
+  text          String
+  date          DateTime
+  isNear        Boolean   @default(false)
+  alertEnabled  Boolean   @default(true)
+  alertMinutes  Int       @default(60) // Alert X minutes before
+  completed     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("reminders")
+}
+
+model Meeting {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  datetime      DateTime
+  duration      Int?      // Duration in minutes
+  alertEnabled  Boolean   @default(true)
+  alertMinutes  Int       @default(5) // Alert 5 minutes before
+  completed     Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("meetings")
+}
+
+model Note {
+  id            String    @id @default(cuid())
+  title         String?
+  content       String    // Markdown content
+  project       String?   // Tag for project
+  tags          String[]  // Array of tags
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Virtual notebook metadata
+  isNotebook    Boolean   @default(false)
+  notebookDate  DateTime?
+  
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notes")
+}
+
+model WorkSession {
+  id            String      @id @default(cuid())
+  description   String      // What the user is working on
+  type          SessionType @default(WORK)
+  duration      Int         // Duration in minutes
+  completed     Boolean     @default(false)
+  cycleType     CycleType   @default(THREE)
+  sessionIndex  Int         // Index in the cycle (0-based)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("work_sessions")
+}
+
+model Settings {
+  id                String    @id @default(cuid())
+  
+  // Work schedule
+  startHour         Int       @default(9)
+  endHour           Int       @default(18)
+  lunchStart        Int       @default(13)
+  lunchEnd          Int       @default(14)
+  
+  // Pomodoro settings
+  workDuration      Int       @default(25)   // minutes
+  shortBreak        Int       @default(5)    // minutes
+  longBreak         Int       @default(15)   // minutes
+  
+  // Alert settings
+  meetingAlert      Int       @default(5)    // minutes before meeting
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("settings")
+}
+
+model DailyStats {
+  id                  String    @id @default(cuid())
+  date                DateTime  @db.Date
+  completedTasks      Int       @default(0)
+  totalTasks          Int       @default(0)
+  completedPomodoros  Int       @default(0)
+  targetPomodoros     Int       @default(8)
+  incompleteTasks     Int       @default(0)
+  dayOfWeek           Int       // 0 = Sunday, 1 = Monday, etc.
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  userId              String
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@map("daily_stats")
+}
+
+model Log {
+  id          String    @id @default(cuid())
+  type        LogType
+  content     Json      // Flexible content for different log types
+  timestamp   DateTime  @default(now())
+  
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("logs")
+}
+
+// Enums
+enum Priority {
+  ASAP
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum TaskStatus {
+  BACKLOG
+  TODAY
+  DOING
+  COMPLETED
+  TOMORROW
+}
+
+enum SessionType {
+  WORK
+  REST
+}
+
+enum CycleType {
+  THREE
+  FOUR
+  FIVE
+}
+
+enum LogType {
+  DAY_START
+  DAY_END
+  TASK_CHANGE
+  POMODORO_START
+  POMODORO_END
+  DASHBOARD_STATE
+}
