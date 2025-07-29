@@ -6,6 +6,7 @@ import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Separator } from './ui/separator';
 import { Settings, Clock, Bell, Database, Calendar, Loader2 } from 'lucide-react';
+import { useMissionData } from './MissionDataContext';
 
 interface SettingsModalProps {
   open: boolean;
@@ -24,7 +25,9 @@ interface SettingsData {
 }
 
 export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
-  const [isLoading, setIsLoading] = useState(false);
+  const missionData = useMissionData();
+  const settings = missionData.settings.get()[0]; // Get the first (and only) settings object
+  
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -46,26 +49,9 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     reminderAlert: 60
   });
 
-  // Fetch settings when modal opens
+  // Load settings when modal opens or settings change
   useEffect(() => {
-    if (open) {
-      fetchSettings();
-    }
-  }, [open]);
-
-  const fetchSettings = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response = await fetch('/api/settings');
-      if (!response.ok) {
-        throw new Error('Failed to fetch settings');
-      }
-      
-      const settings: SettingsData = await response.json();
-      
-      // Update state with fetched settings
+    if (open && settings) {
       setWorkSchedule({
         workStart: settings.startHour,
         workEnd: settings.endHour,
@@ -83,12 +69,8 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
         meetingAlert: settings.meetingAlert,
         reminderAlert: 60 // Default value as it's not in the schema yet
       });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch settings');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [open, settings]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -106,19 +88,14 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
         meetingAlert: notifications.meetingAlert
       };
 
-      const response = await fetch('/api/settings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(settingsData)
-      });
-
-      if (!response.ok) {
+      // Use the settings manager to update
+      const updatedSettings = await missionData.settings.update(settings?.id || 'new', settingsData);
+      
+      if (updatedSettings) {
+        onOpenChange(false);
+      } else {
         throw new Error('Failed to save settings');
       }
-
-      onOpenChange(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save settings');
     } finally {
@@ -126,7 +103,8 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     }
   };
 
-  if (isLoading) {
+  // Show loading state if settings are still loading
+  if (missionData.settings.isLoading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl bg-slate-900 border-slate-600">

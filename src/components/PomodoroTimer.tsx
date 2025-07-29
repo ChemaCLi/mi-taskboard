@@ -6,6 +6,7 @@ import { Progress } from './ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Play, Pause, RotateCcw, Settings, Target } from 'lucide-react';
 import { WorkSessionModal } from './WorkSessionModal';
+import { useMissionData } from './MissionDataContext';
 
 type SessionType = 'work' | 'rest';
 type CycleMode = '3' | '4' | '5';
@@ -16,6 +17,9 @@ interface Session {
 }
 
 export function PomodoroTimer() {
+  const missionData = useMissionData();
+  const settings = missionData.settings.get()[0]; // Get the first (and only) settings object
+  
   const [isActive, setIsActive] = useState(false);
   const [time, setTime] = useState(25 * 60); // 25 minutes in seconds
   const [currentSession, setCurrentSession] = useState(0);
@@ -23,10 +27,10 @@ export function PomodoroTimer() {
   const [showWorkModal, setShowWorkModal] = useState(false);
   const [currentWork, setCurrentWork] = useState('');
   
-  // Customizable durations
-  const [workDuration, setWorkDuration] = useState(25);
-  const [shortBreak, setShortBreak] = useState(5);
-  const [longBreak, setLongBreak] = useState(15);
+  // Use settings if available, otherwise fallback to defaults
+  const workDuration = settings?.workDuration || 25;
+  const shortBreak = settings?.shortBreak || 5;
+  const longBreak = settings?.longBreak || 15;
 
   const getCycle = (mode: CycleMode): Session[] => {
     const cycles: Record<CycleMode, Session[]> = {
@@ -68,6 +72,13 @@ export function PomodoroTimer() {
   const currentSessionData = currentCycle[currentSession];
   const totalDuration = currentSessionData ? currentSessionData.duration * 60 : 25 * 60;
   const progress = ((totalDuration - time) / totalDuration) * 100;
+
+  // Update time when settings change
+  useEffect(() => {
+    if (currentSessionData) {
+      setTime(currentSessionData.duration * 60);
+    }
+  }, [currentSessionData, workDuration, shortBreak, longBreak]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;

@@ -14,7 +14,8 @@ import {
   Calendar, 
   FileText,
   RefreshCw,
-  Shield
+  Shield,
+  Settings
 } from 'lucide-react';
 import { useMissionData } from './MissionDataContext';
 
@@ -63,6 +64,13 @@ export function MissionLoadingModal({ open, onClose }: MissionLoadingModalProps)
       icon: FileText,
       manager: missionData.notes,
       color: 'text-blue-400'
+    },
+    {
+      key: 'settings',
+      label: 'System Configuration',
+      icon: Settings,
+      manager: missionData.settings,
+      color: 'text-orange-400'
     }
   ];
 

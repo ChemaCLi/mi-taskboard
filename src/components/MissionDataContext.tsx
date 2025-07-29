@@ -85,6 +85,21 @@ interface Note {
   userId: string;
 }
 
+interface Settings {
+  id: string;
+  startHour: number;
+  endHour: number;
+  lunchStart: number;
+  lunchEnd: number;
+  workDuration: number;
+  shortBreak: number;
+  longBreak: number;
+  meetingAlert: number;
+  createdAt: string;
+  updatedAt: string;
+  userId: string;
+}
+
 // Loading states for each entity
 interface LoadingState {
   isLoading: boolean;
@@ -121,6 +136,7 @@ interface MissionDataContextType {
   reminders: EntityManager<Reminder>;
   meetings: EntityManager<Meeting>;
   notes: EntityManager<Note>;
+  settings: EntityManager<Settings>;
   
   // Special operations
   moveTask: TaskOperations['moveTask'];
@@ -160,6 +176,7 @@ export function MissionDataProvider({ children }: MissionDataProviderProps) {
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
+  const [settings, setSettings] = useState<Settings[]>([]);
   
   // Loading states
   const [loadingStates, setLoadingStates] = useState({
@@ -168,6 +185,7 @@ export function MissionDataProvider({ children }: MissionDataProviderProps) {
     reminders: { isLoading: false, error: null, isInitialized: false } as LoadingState,
     meetings: { isLoading: false, error: null, isInitialized: false } as LoadingState,
     notes: { isLoading: false, error: null, isInitialized: false } as LoadingState,
+    settings: { isLoading: false, error: null, isInitialized: false } as LoadingState,
   });
 
   // Helper function to make authenticated requests
@@ -356,6 +374,104 @@ export function MissionDataProvider({ children }: MissionDataProviderProps) {
   const reminderManager = createEntityManager('reminders', reminders, setReminders, 'reminders');
   const meetingManager = createEntityManager('meetings', meetings, setMeetings, 'meetings');
   const noteManager = createEntityManager('notes', notes, setNotes, 'notes');
+  
+  // Custom settings manager (uses POST for updates instead of PUT)
+  const settingsManager: EntityManager<Settings> = {
+    data: settings,
+    isLoading: loadingStates.settings.isLoading,
+    error: loadingStates.settings.error,
+    isInitialized: loadingStates.settings.isInitialized,
+    get: () => settings,
+    create: async (createData: Partial<Settings>): Promise<Settings | null> => {
+      try {
+        const result = await makeRequest('/api/settings', {
+          method: 'POST',
+          body: JSON.stringify(createData),
+        });
+
+        if (result.success) {
+          const newSettings = result.settings[0];
+          setSettings([newSettings]);
+          return newSettings;
+        } else {
+          throw new Error(result.error || 'Failed to create settings');
+        }
+      } catch (error) {
+        console.error('Error creating settings:', error);
+        return null;
+      }
+    },
+    update: async (id: string, updateData: Partial<Settings>): Promise<Settings | null> => {
+      try {
+        console.log('MissionData: Updating settings with data:', updateData);
+        
+        // Optimistic update: immediately update the UI
+        const originalData = [...settings];
+        const itemToUpdate = settings.find(item => item.id === id);
+        
+        if (itemToUpdate) {
+          const optimisticItem = { ...itemToUpdate, ...updateData };
+          setSettings([optimisticItem]);
+          console.log('MissionData: Applied optimistic update for settings');
+        }
+
+        // Make the actual API call using POST (not PUT)
+        const result = await makeRequest('/api/settings', {
+          method: 'POST',
+          body: JSON.stringify(updateData),
+        });
+
+        console.log('MissionData: Settings update result:', result);
+
+        if (result.success) {
+          const updatedSettings = result.settings[0];
+          console.log('MissionData: Updated settings:', updatedSettings);
+          
+          if (updatedSettings) {
+            // Update with the server response
+            setSettings([updatedSettings]);
+            console.log('MissionData: Updated settings data');
+            return updatedSettings;
+          } else {
+            console.error('MissionData: No settings in response:', result);
+            throw new Error('No settings in response');
+          }
+        } else {
+          // Rollback optimistic update on error
+          setSettings(originalData);
+          console.log('MissionData: Rolled back optimistic update for settings');
+          throw new Error(result.error || 'Failed to update settings');
+        }
+      } catch (error) {
+        console.error('Error updating settings:', error);
+        // Rollback optimistic update on error
+        setSettings(prev => prev.map(item => item.id === id ? settings.find(s => s.id === id)! : item));
+        return null;
+      }
+    },
+    delete: async (id: string): Promise<boolean> => {
+      // Settings don't support deletion
+      console.warn('Settings deletion not supported');
+      return false;
+    },
+    refresh: async () => {
+      try {
+        updateLoadingState('settings', { isLoading: true, error: null });
+        const result = await makeRequest('/api/settings');
+        
+        if (result.success) {
+          setSettings(result.settings || []);
+          updateLoadingState('settings', { isLoading: false, isInitialized: true });
+        } else {
+          throw new Error(result.error || 'Failed to load settings');
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        updateLoadingState('settings', { isLoading: false, error: errorMessage });
+        console.error('Error loading settings:', error);
+      }
+    },
+  };
 
   // Global loading calculations
   const globalLoading = {
@@ -379,6 +495,7 @@ export function MissionDataProvider({ children }: MissionDataProviderProps) {
         case 'reminders': return reminderManager.refresh();
         case 'meetings': return meetingManager.refresh();
         case 'notes': return noteManager.refresh();
+        case 'settings': return settingsManager.refresh();
         default: return Promise.resolve();
       }
     }));
@@ -391,6 +508,7 @@ export function MissionDataProvider({ children }: MissionDataProviderProps) {
       reminderManager.refresh(),
       meetingManager.refresh(),
       noteManager.refresh(),
+      settingsManager.refresh(),
     ]);
   };
 
@@ -405,6 +523,7 @@ export function MissionDataProvider({ children }: MissionDataProviderProps) {
     reminders: reminderManager,
     meetings: meetingManager,
     notes: noteManager,
+    settings: settingsManager,
     moveTask,
     globalLoading,
     retryFailedLoads,

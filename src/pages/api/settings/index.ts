@@ -26,19 +26,28 @@ export const GET: APIRoute = async (context) => {
           }
         });
 
-        return new Response(JSON.stringify(defaultSettings), {
+        return new Response(JSON.stringify({
+          success: true,
+          settings: [defaultSettings]
+        }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' }
         });
       }
 
-      return new Response(JSON.stringify(settings), {
+      return new Response(JSON.stringify({
+        success: true,
+        settings: [settings]
+      }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
       });
     } catch (error) {
       console.error('Error fetching settings:', error);
-      return new Response(JSON.stringify({ error: 'Failed to fetch settings' }), {
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'Failed to fetch settings' 
+      }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       });
@@ -89,13 +98,19 @@ export const POST: APIRoute = async (context) => {
         });
       }
 
-      return new Response(JSON.stringify(settings), {
+      return new Response(JSON.stringify({
+        success: true,
+        settings: [settings]
+      }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
       });
     } catch (error) {
       console.error('Error saving settings:', error);
-      return new Response(JSON.stringify({ error: 'Failed to save settings' }), {
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'Failed to save settings' 
+      }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       });
