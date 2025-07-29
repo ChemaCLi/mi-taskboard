@@ -46,6 +46,11 @@ function TaskItem({ task, onTaskClick }: TaskItemProps) {
     }
   };
 
+  const handleTitleClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent drag from starting
+    onTaskClick(task);
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -53,15 +58,15 @@ function TaskItem({ task, onTaskClick }: TaskItemProps) {
       {...attributes}
       {...listeners}
       className="p-3 bg-slate-700/50 rounded border border-slate-600 hover:border-purple-400/50 transition-colors cursor-grab active:cursor-grabbing"
-      onClick={(e) => {
-        if (!isDragging && e.target === e.currentTarget) {
-          onTaskClick(task);
-        }
-      }}
     >
       <div className="space-y-2">
         <div className="flex items-start justify-between">
-          <h4 className="text-white font-medium text-sm flex-1 line-through">{task.title}</h4>
+          <h4 
+            className="text-white font-medium text-sm flex-1 line-through cursor-pointer hover:text-purple-400 transition-colors"
+            onClick={handleTitleClick}
+          >
+            {task.title}
+          </h4>
           <Badge variant="outline" className={`text-xs ${getPriorityColor(task.priority)}`}>
             {task.priority}
           </Badge>
