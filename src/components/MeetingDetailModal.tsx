@@ -238,7 +238,7 @@ export function MeetingDetailModal({ open, onOpenChange, meeting, onSave, onDele
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="title" className="text-white">Briefing Subject</Label>
             <Input
@@ -248,118 +248,95 @@ export function MeetingDetailModal({ open, onOpenChange, meeting, onSave, onDele
               placeholder="Enter briefing subject"
               className="bg-slate-800 border-slate-600 text-white"
               disabled={isLoading}
-              required
             />
           </div>
-
+          
           <div>
             <Label htmlFor="description" className="text-white">Mission Brief</Label>
             <Textarea
               id="description"
-              value={formData.description || ''}
+              value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
-              placeholder="Briefing agenda and strategic objectives..."
+              placeholder="Briefing details and agenda..."
               className="bg-slate-800 border-slate-600 text-white"
-              disabled={isLoading}
               rows={3}
+              disabled={isLoading}
             />
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="date" className="text-white">Neural Link Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
-                    disabled={isLoading}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.datetime ? new Date(formData.datetime).toLocaleDateString() : "Select date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600">
-                  <Calendar
-                    mode="single"
-                    selected={new Date(formData.datetime)}
-                    onSelect={(date) => setFormData({...formData, datetime: date || new Date()})}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div>
-              <Label className="text-white">Sync Time</Label>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  min="0"
-                  max="23"
-                  value={selectedTime.hours}
-                  onChange={(e) => setSelectedTime({...selectedTime, hours: e.target.value.padStart(2, '0')})}
-                  className="bg-slate-800 border-slate-600 text-white"
-                  placeholder="HH"
-                  disabled={isLoading}
-                />
-                <span className="text-white self-center">:</span>
-                <Input
-                  type="number"
-                  min="0"
-                  max="59"
-                  value={selectedTime.minutes}
-                  onChange={(e) => setSelectedTime({...selectedTime, minutes: e.target.value.padStart(2, '0')})}
-                  className="bg-slate-800 border-slate-600 text-white"
-                  placeholder="MM"
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
+          
+          <div>
+            <Label htmlFor="type" className="text-white">Neural Briefing Protocol</Label>
+            <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value as any})} disabled={isLoading}>
+              <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
+                <SelectValue placeholder="Select protocol type" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-600">
+                <SelectItem value="standup">Daily Sync</SelectItem>
+                <SelectItem value="review">Strategic Review</SelectItem>
+                <SelectItem value="planning">Mission Planning</SelectItem>
+                <SelectItem value="other">Custom Protocol</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="type" className="text-white">Mission Type</Label>
-              <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value as any})} disabled={isLoading}>
-                <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-600">
-                  <SelectItem value="standup">Daily Sync</SelectItem>
-                  <SelectItem value="review">Strategic Review</SelectItem>
-                  <SelectItem value="planning">Mission Planning</SelectItem>
-                  <SelectItem value="other">Custom Protocol</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="duration" className="text-white">Session Duration</Label>
-              <Input
-                id="duration"
-                type="number"
-                min="1"
-                value={formData.duration}
-                onChange={(e) => setFormData({...formData, duration: Number(e.target.value)})}
-                className="bg-slate-800 border-slate-600 text-white"
-                disabled={isLoading}
-              />
-            </div>
+          
+          <div>
+            <Label htmlFor="duration" className="text-white">Session Duration</Label>
+            <Select value={formData.duration?.toString()} onValueChange={(value) => setFormData({...formData, duration: parseInt(value)})} disabled={isLoading}>
+              <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
+                <SelectValue placeholder="Select duration" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-600">
+                <SelectItem value="15">15 min - Quick Sync</SelectItem>
+                <SelectItem value="30">30 min - Standard Brief</SelectItem>
+                <SelectItem value="45">45 min - Extended Session</SelectItem>
+                <SelectItem value="60">1 hr - Full Briefing</SelectItem>
+                <SelectItem value="90">1.5 hr - Strategic Review</SelectItem>
+                <SelectItem value="120">2 hr - Deep Dive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-
+          
+          <div>
+            <Label htmlFor="participants" className="text-white">Neural Network Participants</Label>
+            <Input
+              id="participants"
+              value={formData.participants?.join(', ') || ''}
+              onChange={(e) => setFormData({...formData, participants: e.target.value.split(',').map(p => p.trim()).filter(Boolean)})}
+              placeholder="Enter operative names (comma separated)"
+              className="bg-slate-800 border-slate-600 text-white"
+              disabled={isLoading}
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="datetime" className="text-white">Neural Link Date & Time</Label>
+            <Input
+              id="datetime"
+              type="datetime-local"
+              value={formData.datetime instanceof Date ? 
+                formData.datetime.toISOString().slice(0, 16) : 
+                typeof formData.datetime === 'string' ? 
+                  new Date(formData.datetime).toISOString().slice(0, 16) : 
+                  ''
+              }
+              onChange={(e) => setFormData({...formData, datetime: new Date(e.target.value)})}
+              className="bg-slate-800 border-slate-600 text-white"
+              disabled={isLoading}
+            />
+          </div>
+          
           <div>
             <Label htmlFor="location" className="text-white">Neural Hub Location</Label>
             <Input
               id="location"
               value={formData.location}
               onChange={(e) => setFormData({...formData, location: e.target.value})}
-              placeholder="Briefing location or virtual space"
+              placeholder="Enter briefing location or virtual space"
               className="bg-slate-800 border-slate-600 text-white"
               disabled={isLoading}
             />
           </div>
-
+          
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <input
@@ -372,39 +349,23 @@ export function MeetingDetailModal({ open, onOpenChange, meeting, onSave, onDele
               />
               <Label htmlFor="alertEnabled" className="text-white">Enable neural alert</Label>
             </div>
-
+            
             {formData.alertEnabled && (
               <div>
-                <Label htmlFor="alertMinutes" className="text-white">Alert minutes before sync</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="alertMinutes"
-                    type="number"
-                    min="1"
-                    value={formData.alertMinutes}
-                    onChange={(e) => setFormData({...formData, alertMinutes: Number(e.target.value)})}
-                    className="bg-slate-800 border-slate-600 text-white w-24"
-                    disabled={isLoading}
-                  />
-                  <span className="text-slate-400">minutes</span>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  You will be alerted at {new Date(new Date(formData.datetime).getTime() - formData.alertMinutes * 60 * 1000).toLocaleString()}
-                </p>
+                <Label htmlFor="alertMinutes" className="text-white">Alert Time (minutes before)</Label>
+                <Input
+                  id="alertMinutes"
+                  type="number"
+                  value={formData.alertMinutes}
+                  onChange={(e) => setFormData({...formData, alertMinutes: parseInt(e.target.value)})}
+                  placeholder="5"
+                  className="bg-slate-800 border-slate-600 text-white"
+                  min="1"
+                  max="60"
+                  disabled={isLoading}
+                />
               </div>
             )}
-
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="completed"
-                checked={formData.completed}
-                onChange={(e) => setFormData({...formData, completed: e.target.checked})}
-                className="rounded bg-slate-800 border-slate-600"
-                disabled={isLoading}
-              />
-              <Label htmlFor="completed" className="text-white">Mark as completed</Label>
-            </div>
           </div>
 
           <div className="flex justify-between">

@@ -120,58 +120,56 @@ export function CreateMeetingModal({ open, onOpenChange, onSave }: CreateMeeting
               id="title"
               value={formData.title}
               onChange={(e) => setFormData({...formData, title: e.target.value})}
-              placeholder="Enter briefing subject"
+              placeholder="Enter briefing subject..."
               className="bg-slate-800 border-slate-600 text-white"
-              disabled={isCreating}
               required
+              disabled={isCreating}
             />
           </div>
-
+          
           <div>
             <Label htmlFor="description" className="text-white">Mission Brief</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
-              placeholder="Briefing agenda and objectives..."
+              placeholder="Briefing details and agenda..."
               className="bg-slate-800 border-slate-600 text-white"
-              disabled={isCreating}
               rows={3}
+              disabled={isCreating}
             />
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="type" className="text-white">Mission Type</Label>
-              <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})} disabled={isCreating}>
-                <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
-                  <SelectValue placeholder="Select mission type" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-600">
-                  <SelectItem value="standup">Daily Sync</SelectItem>
-                  <SelectItem value="review">Strategic Review</SelectItem>
-                  <SelectItem value="planning">Mission Planning</SelectItem>
-                  <SelectItem value="other">Custom Protocol</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <Label htmlFor="duration" className="text-white">Session Duration</Label>
-              <Select value={formData.duration} onValueChange={(value) => setFormData({...formData, duration: value})} disabled={isCreating}>
-                <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
-                  <SelectValue placeholder="Select duration" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-600">
-                  <SelectItem value="15">15 min - Quick Sync</SelectItem>
-                  <SelectItem value="30">30 min - Standard Brief</SelectItem>
-                  <SelectItem value="45">45 min - Extended Session</SelectItem>
-                  <SelectItem value="60">1 hr - Full Briefing</SelectItem>
-                  <SelectItem value="90">1.5 hr - Strategic Review</SelectItem>
-                  <SelectItem value="120">2 hr - Deep Dive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label htmlFor="type" className="text-white">Neural Briefing Protocol</Label>
+            <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})} disabled={isCreating}>
+              <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
+                <SelectValue placeholder="Select protocol type" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-600">
+                <SelectItem value="standup">Daily Sync</SelectItem>
+                <SelectItem value="review">Strategic Review</SelectItem>
+                <SelectItem value="planning">Mission Planning</SelectItem>
+                <SelectItem value="other">Custom Protocol</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label htmlFor="duration" className="text-white">Session Duration</Label>
+            <Select value={formData.duration} onValueChange={(value) => setFormData({...formData, duration: value})} disabled={isCreating}>
+              <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
+                <SelectValue placeholder="Select duration" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-600">
+                <SelectItem value="15">15 min - Quick Sync</SelectItem>
+                <SelectItem value="30">30 min - Standard Brief</SelectItem>
+                <SelectItem value="45">45 min - Extended Session</SelectItem>
+                <SelectItem value="60">1 hr - Full Briefing</SelectItem>
+                <SelectItem value="90">1.5 hr - Strategic Review</SelectItem>
+                <SelectItem value="120">2 hr - Deep Dive</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           <div>
@@ -186,43 +184,41 @@ export function CreateMeetingModal({ open, onOpenChange, onSave }: CreateMeeting
             />
           </div>
           
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="date" className="text-white">Neural Link Date *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
-                    disabled={isCreating}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.date ? formData.date.toLocaleDateString() : "Select date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600">
-                  <Calendar
-                    mode="single"
-                    selected={formData.date}
-                    onSelect={(date) => setFormData({...formData, date: date || undefined})}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            
-            <div>
-              <Label htmlFor="time" className="text-white">Sync Time *</Label>
-              <Input
-                id="time"
-                type="time"
-                value={formData.time}
-                onChange={(e) => setFormData({...formData, time: e.target.value})}
-                className="bg-slate-800 border-slate-600 text-white"
-                disabled={isCreating}
-                required
-              />
-            </div>
+          <div>
+            <Label htmlFor="date" className="text-white">Neural Link Date *</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
+                  disabled={isCreating}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {formData.date ? formData.date.toLocaleDateString() : "Select date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600">
+                <Calendar
+                  mode="single"
+                  selected={formData.date}
+                  onSelect={(date) => setFormData({...formData, date: date || undefined})}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          
+          <div>
+            <Label htmlFor="time" className="text-white">Sync Time *</Label>
+            <Input
+              id="time"
+              type="time"
+              value={formData.time}
+              onChange={(e) => setFormData({...formData, time: e.target.value})}
+              className="bg-slate-800 border-slate-600 text-white"
+              disabled={isCreating}
+              required
+            />
           </div>
           
           <div>
@@ -249,22 +245,21 @@ export function CreateMeetingModal({ open, onOpenChange, onSave }: CreateMeeting
               />
               <Label htmlFor="alertEnabled" className="text-white">Enable neural alert</Label>
             </div>
-
+            
             {formData.alertEnabled && (
               <div>
-                <Label htmlFor="alertMinutes" className="text-white">Alert minutes before sync</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="alertMinutes"
-                    type="number"
-                    min="1"
-                    value={formData.alertMinutes}
-                    onChange={(e) => setFormData({...formData, alertMinutes: Number(e.target.value)})}
-                    className="bg-slate-800 border-slate-600 text-white w-24"
-                    disabled={isCreating}
-                  />
-                  <span className="text-slate-400">minutes</span>
-                </div>
+                <Label htmlFor="alertMinutes" className="text-white">Alert Time (minutes before)</Label>
+                <Input
+                  id="alertMinutes"
+                  type="number"
+                  value={formData.alertMinutes}
+                  onChange={(e) => setFormData({...formData, alertMinutes: parseInt(e.target.value)})}
+                  placeholder="5"
+                  className="bg-slate-800 border-slate-600 text-white"
+                  min="1"
+                  max="60"
+                  disabled={isCreating}
+                />
               </div>
             )}
           </div>

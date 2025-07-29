@@ -159,7 +159,7 @@ export function ReminderDetailModal({ open, onOpenChange, reminder, onSave, onDe
           </DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="text" className="text-white">Reminder Text</Label>
             <Textarea
@@ -173,53 +173,51 @@ export function ReminderDetailModal({ open, onOpenChange, reminder, onSave, onDe
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="date" className="text-white">Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.date ? new Date(formData.date).toLocaleDateString() : "Select date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600">
-                  <Calendar
-                    mode="single"
-                    selected={new Date(formData.date)}
-                    onSelect={(date) => setFormData({...formData, date: date || new Date()})}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+          <div>
+            <Label htmlFor="date" className="text-white">Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {formData.date ? new Date(formData.date).toLocaleDateString() : "Select date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600">
+                <Calendar
+                  mode="single"
+                  selected={new Date(formData.date)}
+                  onSelect={(date) => setFormData({...formData, date: date || new Date()})}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
 
-            <div>
-              <Label className="text-white">Time</Label>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  min="0"
-                  max="23"
-                  value={selectedTime.hours}
-                  onChange={(e) => setSelectedTime({...selectedTime, hours: e.target.value.padStart(2, '0')})}
-                  className="bg-slate-800 border-slate-600 text-white"
-                  placeholder="HH"
-                />
-                <span className="text-white self-center">:</span>
-                <Input
-                  type="number"
-                  min="0"
-                  max="59"
-                  value={selectedTime.minutes}
-                  onChange={(e) => setSelectedTime({...selectedTime, minutes: e.target.value.padStart(2, '0')})}
-                  className="bg-slate-800 border-slate-600 text-white"
-                  placeholder="MM"
-                />
-              </div>
+          <div>
+            <Label className="text-white">Time</Label>
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                min="0"
+                max="23"
+                value={selectedTime.hours}
+                onChange={(e) => setSelectedTime({...selectedTime, hours: e.target.value.padStart(2, '0')})}
+                className="bg-slate-800 border-slate-600 text-white"
+                placeholder="HH"
+              />
+              <span className="text-white self-center">:</span>
+              <Input
+                type="number"
+                min="0"
+                max="59"
+                value={selectedTime.minutes}
+                onChange={(e) => setSelectedTime({...selectedTime, minutes: e.target.value.padStart(2, '0')})}
+                className="bg-slate-800 border-slate-600 text-white"
+                placeholder="MM"
+              />
             </div>
           </div>
 
@@ -237,25 +235,21 @@ export function ReminderDetailModal({ open, onOpenChange, reminder, onSave, onDe
 
             {formData.alertEnabled && (
               <div>
-                <Label htmlFor="alertMinutes" className="text-white">Alert me this many minutes before</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="alertMinutes"
-                    type="number"
-                    min="1"
-                    value={formData.alertMinutes}
-                    onChange={(e) => setFormData({...formData, alertMinutes: Number(e.target.value)})}
-                    className="bg-slate-800 border-slate-600 text-white w-24"
-                  />
-                  <span className="text-slate-400">minutes</span>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  You will be alerted at {new Date(new Date(formData.date).getTime() - formData.alertMinutes * 60 * 1000).toLocaleString()}
-                </p>
+                <Label htmlFor="alertMinutes" className="text-white">Alert Time (minutes before)</Label>
+                <Input
+                  id="alertMinutes"
+                  type="number"
+                  min="1"
+                  value={formData.alertMinutes}
+                  onChange={(e) => setFormData({...formData, alertMinutes: Number(e.target.value)})}
+                  className="bg-slate-800 border-slate-600 text-white"
+                  placeholder="5"
+                />
               </div>
             )}
+          </div>
 
-            <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 id="completed"
@@ -265,7 +259,6 @@ export function ReminderDetailModal({ open, onOpenChange, reminder, onSave, onDe
               />
               <Label htmlFor="completed" className="text-white">Mark as completed</Label>
             </div>
-          </div>
 
           <div className="flex justify-between">
             <div>

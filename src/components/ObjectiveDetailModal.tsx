@@ -239,194 +239,159 @@ export function ObjectiveDetailModal({ open, onOpenChange, objective, onSave, on
           </div>
         )}
         
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="title" className="text-cyan-400">Mission Objective</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  placeholder="Define strategic objective..."
-                  className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
-                  disabled={isLoading}
-                  required
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="title" className="text-cyan-400">Mission Objective</Label>
+            <Input
+              id="title"
+              value={formData.title}
+              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              placeholder="Enter strategic objective..."
+              className="bg-slate-800 border-slate-600 text-white"
+              required
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="description" className="text-cyan-400">Strategic Brief</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              placeholder="Detailed description of the strategic objective..."
+              className="bg-slate-800 border-slate-600 text-white"
+              rows={3}
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="priority" className="text-cyan-400">Priority Level</Label>
+            <Select value={formData.priority} onValueChange={(value) => setFormData({...formData, priority: value as any})}>
+              <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-600">
+                <SelectItem value="ASAP">🔴 ASAP - Critical</SelectItem>
+                <SelectItem value="HIGH">🟠 High Priority</SelectItem>
+                <SelectItem value="MEDIUM">🟡 Medium Priority</SelectItem>
+                <SelectItem value="LOW">🟢 Low Priority</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label htmlFor="status" className="text-cyan-400">Mission Status</Label>
+            <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value as any})}>
+              <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-600">
+                <SelectItem value="ACTIVE">🎯 Active Mission</SelectItem>
+                <SelectItem value="ACHIEVED">⭐ Mission Achieved</SelectItem>
+                <SelectItem value="ABORTED">❌ Mission Aborted</SelectItem>
+                <SelectItem value="INTERRUPTED">⏸️ Mission Interrupted</SelectItem>
+                <SelectItem value="ARCHIVED">📦 Mission Archived</SelectItem>
+                <SelectItem value="PAUSED">⏸️ Mission Paused</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label htmlFor="deadline" className="text-cyan-400">Mission Deadline</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {formData.deadline ? 
+                    (formData.deadline instanceof Date ? 
+                      formData.deadline.toLocaleDateString() : 
+                      new Date(formData.deadline).toLocaleDateString()
+                    ) : "Select deadline"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600">
+                <Calendar
+                  mode="single"
+                  selected={formData.deadline instanceof Date ? formData.deadline : formData.deadline ? new Date(formData.deadline) : undefined}
+                  onSelect={(date) => setFormData({...formData, deadline: date || new Date()})}
+                  initialFocus
                 />
-              </div>
-              
-              <div>
-                <Label htmlFor="description" className="text-cyan-400">Mission Briefing</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  placeholder="Detailed mission briefing and success criteria..."
-                  className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
-                  disabled={isLoading}
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="priority" className="text-cyan-400">Priority Level</Label>
-                  <Select value={formData.priority} onValueChange={(value) => setFormData({...formData, priority: value as any})} disabled={isLoading}>
-                    <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="ASAP">🔥 CRITICAL - ASAP</SelectItem>
-                      <SelectItem value="HIGH">⚡ HIGH - Urgent</SelectItem>
-                      <SelectItem value="MEDIUM">📋 MEDIUM - Standard</SelectItem>
-                      <SelectItem value="LOW">🌱 LOW - When Possible</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="status" className="text-cyan-400">Mission Status</Label>
-                  <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value as any})} disabled={isLoading}>
-                    <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="ACTIVE">
-                        <div className="flex items-center gap-2">
-                          <Target className="w-4 h-4" /> Active
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="ACHIEVED">
-                        <div className="flex items-center gap-2">
-                          <Star className="w-4 h-4" /> Achieved
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="ABORTED">
-                        <div className="flex items-center gap-2">
-                          <X className="w-4 h-4" /> Aborted
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="INTERRUPTED">
-                        <div className="flex items-center gap-2">
-                          <Hand className="w-4 h-4" /> Interrupted
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="ARCHIVED">
-                        <div className="flex items-center gap-2">
-                          <Snowflake className="w-4 h-4" /> Archived
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="PAUSED">
-                        <div className="flex items-center gap-2">
-                          <Pause className="w-4 h-4" /> Paused
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="timeNeeded" className="text-cyan-400">Estimated Time (hours)</Label>
-                <Input
-                  id="timeNeeded"
-                  type="number"
-                  value={formData.timeNeeded}
-                  onChange={(e) => setFormData({...formData, timeNeeded: Number(e.target.value)})}
-                  placeholder="0"
-                  className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="deadline" className="text-cyan-400">Mission Deadline</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
-                      disabled={isLoading}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.deadline ? new Date(formData.deadline).toLocaleDateString() : "Select mission deadline"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600">
-                    <Calendar
-                      mode="single"
-                      selected={formData.deadline instanceof Date ? formData.deadline : new Date(formData.deadline)}
-                      onSelect={(date) => setFormData({...formData, deadline: date || new Date()})}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="purpose" className="text-white">Purpose</Label>
-                <Textarea
-                  id="purpose"
-                  value={formData.purpose}
-                  onChange={(e) => setFormData({...formData, purpose: e.target.value})}
-                  placeholder="What is this objective for?"
-                  className="bg-slate-800 border-slate-600 text-white"
-                  rows={2}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="existing" className="text-white">Existing Solutions</Label>
-                <Textarea
-                  id="existing"
-                  value={formData.existing}
-                  onChange={(e) => setFormData({...formData, existing: e.target.value})}
-                  placeholder="What already exists that can help?"
-                  className="bg-slate-800 border-slate-600 text-white"
-                  rows={2}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="complexities" className="text-white">Possible Complexities</Label>
-                <Textarea
-                  id="complexities"
-                  value={formData.complexities}
-                  onChange={(e) => setFormData({...formData, complexities: e.target.value})}
-                  placeholder="What could go wrong or be complex?"
-                  className="bg-slate-800 border-slate-600 text-white"
-                  rows={2}
-                />
-              </div>
-
-              <div>
-                <Label className="text-white">People Who Can Help</Label>
-                <div className="flex gap-2 mb-2">
-                  <Input
-                    value={newPerson}
-                    onChange={(e) => setNewPerson(e.target.value)}
-                    placeholder="Add person..."
-                    className="bg-slate-800 border-slate-600 text-white"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addPerson())}
-                  />
-                  <Button type="button" onClick={addPerson} variant="outline" className="border-slate-600">
-                    Add
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {formData.peopleHelp?.map((person) => (
-                    <Badge key={person} variant="secondary" className="cursor-pointer" onClick={() => removePerson(person)}>
-                      <Users className="w-3 h-3 mr-1" />
-                      {person} ×
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+          
+          <div>
+            <Label htmlFor="timeNeeded" className="text-cyan-400">Estimated Time (hours)</Label>
+            <Input
+              id="timeNeeded"
+              type="number"
+              value={formData.timeNeeded}
+              onChange={(e) => setFormData({...formData, timeNeeded: Number(e.target.value)})}
+              placeholder="e.g. 40"
+              className="bg-slate-800 border-slate-600 text-white"
+              min="0"
+              step="0.5"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="purpose" className="text-cyan-400">Strategic Purpose</Label>
+            <Input
+              id="purpose"
+              value={formData.purpose}
+              onChange={(e) => setFormData({...formData, purpose: e.target.value})}
+              placeholder="Why is this objective critical to our mission?"
+              className="bg-slate-800 border-slate-600 text-white"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="existing" className="text-cyan-400">Available Assets</Label>
+            <Input
+              id="existing"
+              value={formData.existing}
+              onChange={(e) => setFormData({...formData, existing: e.target.value})}
+              placeholder="Existing resources, tools, or progress that can be leveraged"
+              className="bg-slate-800 border-slate-600 text-white"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="complexities" className="text-cyan-400">Threat Assessment</Label>
+            <Textarea
+              id="complexities"
+              value={formData.complexities}
+              onChange={(e) => setFormData({...formData, complexities: e.target.value})}
+              placeholder="Potential challenges, blockers, or risk factors..."
+              className="bg-slate-800 border-slate-600 text-white"
+              rows={2}
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="resources" className="text-cyan-400">Intelligence Resources</Label>
+            <Textarea
+              id="resources"
+              value={formData.resources}
+              onChange={(e) => setFormData({...formData, resources: e.target.value})}
+              placeholder="Links, file paths, documentation, or resource descriptions..."
+              className="bg-slate-800 border-slate-600 text-white"
+              rows={2}
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="peopleHelp" className="text-cyan-400">Allied Support</Label>
+            <Input
+              id="peopleHelp"
+              value={formData.peopleHelp?.join(', ') || ''}
+              onChange={(e) => setFormData({...formData, peopleHelp: e.target.value.split(',').map(p => p.trim()).filter(Boolean)})}
+              placeholder="Names, roles, or contacts who can assist (comma-separated)"
+              className="bg-slate-800 border-slate-600 text-white"
+            />
           </div>
 
           <div>

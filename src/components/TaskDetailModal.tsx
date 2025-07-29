@@ -191,241 +191,231 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
           </DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="title" className="text-white">Mission Title</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  placeholder="Enter mission title..."
-                  className="bg-slate-800 border-slate-600 text-white"
-                  required
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="title" className="text-white">Mission Title *</Label>
+            <Input
+              id="title"
+              value={formData.title}
+              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              placeholder="Enter mission title..."
+              className="bg-slate-800 border-slate-600 text-white"
+              required
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="description" className="text-white">Mission Brief</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              placeholder="Mission description..."
+              className="bg-slate-800 border-slate-600 text-white"
+              rows={3}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="priority" className="text-white">Priority Level</Label>
+            <Select value={formData.priority} onValueChange={(value) => setFormData({...formData, priority: value as any})}>
+              <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-600">
+                <SelectItem value="ASAP">🔴 ASAP - Critical</SelectItem>
+                <SelectItem value="HIGH">🟠 High Priority</SelectItem>
+                <SelectItem value="MEDIUM">🟡 Medium Priority</SelectItem>
+                <SelectItem value="LOW">🟢 Low Priority</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="status" className="text-white">Mission Status</Label>
+            <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value as any})}>
+              <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-600">
+                <SelectItem value="BACKLOG">📋 Mission Backlog</SelectItem>
+                <SelectItem value="TODAY">⭐ Today's Missions</SelectItem>
+                <SelectItem value="DOING">🔥 Active Mission</SelectItem>
+                <SelectItem value="COMPLETED">✅ Mission Complete</SelectItem>
+                <SelectItem value="TOMORROW">🌅 Tomorrow's Missions</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="estimatedTime" className="text-white">Estimated Time (hours)</Label>
+            <Input
+              id="estimatedTime"
+              type="number"
+              value={formData.estimatedTime}
+              onChange={(e) => setFormData({...formData, estimatedTime: Number(e.target.value)})}
+              placeholder="0"
+              className="bg-slate-800 border-slate-600 text-white"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="complexity" className="text-white">Threat Level</Label>
+            <Select value={formData.complexity} onValueChange={(value) => setFormData({...formData, complexity: value as any})}>
+              <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-600">
+                <SelectItem value="Simple">🟢 Simple</SelectItem>
+                <SelectItem value="Moderate">🟡 Moderate</SelectItem>
+                <SelectItem value="Complex">🔴 Complex</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="limitDate" className="text-white">Mission Deadline</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {formData.limitDate ? 
+                    (formData.limitDate instanceof Date ? 
+                      formData.limitDate.toLocaleDateString() : 
+                      new Date(formData.limitDate).toLocaleDateString()
+                    ) : "Select deadline"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600">
+                <Calendar
+                  mode="single"
+                  selected={formData.limitDate instanceof Date ? formData.limitDate : formData.limitDate ? new Date(formData.limitDate) : undefined}
+                  onSelect={(date) => setFormData({...formData, limitDate: date})}
+                  initialFocus
                 />
-              </div>
-              
-              <div>
-                <Label htmlFor="description" className="text-white">Mission Brief</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  placeholder="Mission description..."
-                  className="bg-slate-800 border-slate-600 text-white"
-                  rows={3}
-                />
-              </div>
+              </PopoverContent>
+            </Popover>
+          </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="priority" className="text-white">Priority Level</Label>
-                  <Select value={formData.priority} onValueChange={(value) => setFormData({...formData, priority: value as any})}>
-                    <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="ASAP">🔴 ASAP - Critical</SelectItem>
-                      <SelectItem value="HIGH">🟠 High Priority</SelectItem>
-                      <SelectItem value="MEDIUM">🟡 Medium Priority</SelectItem>
-                      <SelectItem value="LOW">🟢 Low Priority</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+          <div>
+            <Label htmlFor="objective" className="text-white">Strategic Objective</Label>
+            <Select value={formData.objectiveId || 'none'} onValueChange={(value) => setFormData({...formData, objectiveId: value === 'none' ? undefined : value})}>
+              <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
+                <SelectValue placeholder="Select objective (optional)">
+                  {connectedObjective ? (
+                    <div className="flex items-center gap-2">
+                      <Target className="w-4 h-4 text-cyan-400" />
+                      {connectedObjective.title}
+                    </div>
+                  ) : (
+                    "No objective selected"
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-600">
+                <SelectItem value="none">No objective</SelectItem>
+                {objectives
+                  .filter(obj => obj.status === 'ACTIVE')
+                  .map(objective => (
+                    <SelectItem key={objective.id} value={objective.id}>
+                      <div className="flex items-center gap-2">
+                        <Target className="w-4 h-4 text-cyan-400" />
+                        {objective.title}
+                      </div>
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            {connectedObjective?.deadline && (
+              <p className="text-xs text-slate-500 mt-1">
+                Objective deadline: {new Date(connectedObjective.deadline).toLocaleDateString()}
+              </p>
+            )}
+          </div>
 
-                <div>
-                  <Label htmlFor="status" className="text-white">Mission Status</Label>
-                  <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value as any})}>
-                    <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="BACKLOG">📋 Mission Backlog</SelectItem>
-                      <SelectItem value="TODAY">⭐ Today's Missions</SelectItem>
-                      <SelectItem value="DOING">🔥 Active Mission</SelectItem>
-                      <SelectItem value="COMPLETED">✅ Mission Complete</SelectItem>
-                      <SelectItem value="TOMORROW">🌅 Tomorrow's Missions</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+          <div>
+            <Label htmlFor="purpose" className="text-white">Strategic Purpose</Label>
+            <Textarea
+              id="purpose"
+              value={formData.purpose}
+              onChange={(e) => setFormData({...formData, purpose: e.target.value})}
+              placeholder="What is this mission for?"
+              className="bg-slate-800 border-slate-600 text-white"
+              rows={2}
+            />
+          </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="estimatedTime" className="text-white">Estimated Time (hours)</Label>
-                  <Input
-                    id="estimatedTime"
-                    type="number"
-                    value={formData.estimatedTime}
-                    onChange={(e) => setFormData({...formData, estimatedTime: Number(e.target.value)})}
-                    placeholder="0"
-                    className="bg-slate-800 border-slate-600 text-white"
-                  />
-                </div>
+          <div>
+            <Label htmlFor="existing" className="text-white">Available Assets</Label>
+            <Textarea
+              id="existing"
+              value={formData.existing}
+              onChange={(e) => setFormData({...formData, existing: e.target.value})}
+              placeholder="What already exists that can help?"
+              className="bg-slate-800 border-slate-600 text-white"
+              rows={2}
+            />
+          </div>
 
-                <div>
-                  <Label htmlFor="complexity" className="text-white">Threat Level</Label>
-                  <Select value={formData.complexity} onValueChange={(value) => setFormData({...formData, complexity: value as any})}>
-                    <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="Simple">🟢 Simple</SelectItem>
-                      <SelectItem value="Moderate">🟡 Moderate</SelectItem>
-                      <SelectItem value="Complex">🔴 Complex</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+          <div>
+            <Label htmlFor="complexities" className="text-white">Threat Assessment</Label>
+            <Textarea
+              id="complexities"
+              value={formData.complexities}
+              onChange={(e) => setFormData({...formData, complexities: e.target.value})}
+              placeholder="What could go wrong or be complex?"
+              className="bg-slate-800 border-slate-600 text-white"
+              rows={2}
+            />
+          </div>
 
-              <div>
-                <Label htmlFor="limitDate" className="text-white">Mission Deadline</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.limitDate ? 
-                        (formData.limitDate instanceof Date ? 
-                          formData.limitDate.toLocaleDateString() : 
-                          new Date(formData.limitDate).toLocaleDateString()
-                        ) : "Select deadline"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600">
-                    <Calendar
-                      mode="single"
-                      selected={formData.limitDate instanceof Date ? formData.limitDate : (formData.limitDate ? new Date(formData.limitDate) : undefined)}
-                      onSelect={(date) => setFormData({...formData, limitDate: date})}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div>
-                <Label htmlFor="objective" className="text-white">Strategic Objective</Label>
-                <Select value={formData.objectiveId || 'none'} onValueChange={(value) => setFormData({...formData, objectiveId: value === 'none' ? undefined : value})}>
-                  <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
-                    <SelectValue placeholder="Select objective (optional)">
-                      {connectedObjective ? (
-                        <div className="flex items-center gap-2">
-                          <Target className="w-4 h-4 text-cyan-400" />
-                          {connectedObjective.title}
-                        </div>
-                      ) : (
-                        "No objective selected"
-                      )}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-600">
-                    <SelectItem value="none">No objective</SelectItem>
-                    {objectives
-                      .filter(obj => obj.status === 'ACTIVE')
-                      .map(objective => (
-                        <SelectItem key={objective.id} value={objective.id}>
-                          <div className="flex items-center gap-2">
-                            <Target className="w-4 h-4 text-cyan-400" />
-                            {objective.title}
-                          </div>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                {connectedObjective?.deadline && (
-                  <p className="text-xs text-slate-500 mt-1">
-                    Objective deadline: {new Date(connectedObjective.deadline).toLocaleDateString()}
-                  </p>
-                )}
-              </div>
+          <div>
+            <Label className="text-white">Allied Support</Label>
+            <div className="flex gap-2 mb-2">
+              <Input
+                value={newPerson}
+                onChange={(e) => setNewPerson(e.target.value)}
+                placeholder="Add ally..."
+                className="bg-slate-800 border-slate-600 text-white"
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addPerson())}
+              />
+              <Button type="button" onClick={addPerson} variant="outline" className="border-slate-600">
+                Add
+              </Button>
             </div>
+            <div className="flex flex-wrap gap-1">
+              {formData.peopleHelp?.map((person) => (
+                <Badge key={person} variant="secondary" className="cursor-pointer" onClick={() => removePerson(person)}>
+                  <Users className="w-3 h-3 mr-1" />
+                  {person} ×
+                </Badge>
+              ))}
+            </div>
+          </div>
 
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="purpose" className="text-white">Strategic Purpose</Label>
-                <Textarea
-                  id="purpose"
-                  value={formData.purpose}
-                  onChange={(e) => setFormData({...formData, purpose: e.target.value})}
-                  placeholder="What is this mission for?"
-                  className="bg-slate-800 border-slate-600 text-white"
-                  rows={2}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="existing" className="text-white">Available Assets</Label>
-                <Textarea
-                  id="existing"
-                  value={formData.existing}
-                  onChange={(e) => setFormData({...formData, existing: e.target.value})}
-                  placeholder="What already exists that can help?"
-                  className="bg-slate-800 border-slate-600 text-white"
-                  rows={2}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="complexities" className="text-white">Threat Assessment</Label>
-                <Textarea
-                  id="complexities"
-                  value={formData.complexities}
-                  onChange={(e) => setFormData({...formData, complexities: e.target.value})}
-                  placeholder="What could go wrong or be complex?"
-                  className="bg-slate-800 border-slate-600 text-white"
-                  rows={2}
-                />
-              </div>
-
-              <div>
-                <Label className="text-white">Allied Support</Label>
-                <div className="flex gap-2 mb-2">
-                  <Input
-                    value={newPerson}
-                    onChange={(e) => setNewPerson(e.target.value)}
-                    placeholder="Add ally..."
-                    className="bg-slate-800 border-slate-600 text-white"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addPerson())}
-                  />
-                  <Button type="button" onClick={addPerson} variant="outline" className="border-slate-600">
-                    Add
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {formData.peopleHelp?.map((person) => (
-                    <Badge key={person} variant="secondary" className="cursor-pointer" onClick={() => removePerson(person)}>
-                      <Users className="w-3 h-3 mr-1" />
-                      {person} ×
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-white">Mission Tags</Label>
-                <div className="flex gap-2 mb-2">
-                  <Input
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    placeholder="Add mission tag..."
-                    className="bg-slate-800 border-slate-600 text-white"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                  />
-                  <Button type="button" onClick={addTag} variant="outline" className="border-slate-600">
-                    Add
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {formData.tags?.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => removeTag(tag)}>
-                      {tag} ×
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+          <div>
+            <Label className="text-white">Mission Tags</Label>
+            <div className="flex gap-2 mb-2">
+              <Input
+                value={newTag}
+                onChange={(e) => setNewTag(e.target.value)}
+                placeholder="Add mission tag..."
+                className="bg-slate-800 border-slate-600 text-white"
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+              />
+              <Button type="button" onClick={addTag} variant="outline" className="border-slate-600">
+                Add
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {formData.tags?.map((tag) => (
+                <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => removeTag(tag)}>
+                  {tag} ×
+                </Badge>
+              ))}
             </div>
           </div>
 
