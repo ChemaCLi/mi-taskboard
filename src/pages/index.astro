@@ -1,9 +1,14 @@
 ---
-// src/pages/index.astro
+// The middleware will handle redirects automatically
+// This page should not be reached due to middleware redirects
 import Layout from '../layouts/Layout.astro';
-import App from '../components/App.tsx';
 ---
 
-<Layout title="Mission Control - Taskboard">
-  <App client:load />
+<Layout title="Mission Control - Task Management">
+  <div class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+    <div class="text-white text-center">
+      <h1 class="text-2xl mb-4">Redirecting...</h1>
+      <p class="text-slate-400">You should be automatically redirected.</p>
+    </div>
+  </div>
 </Layout>

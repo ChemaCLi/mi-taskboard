@@ -1,42 +1,15 @@
 import { prisma } from '../../lib/prisma';
-import { hashPassword, comparePassword, generateToken } from '../../lib/auth';
+import { hashPassword, comparePassword, generateToken, verifyToken } from '../../lib/auth';
 import type { User } from '@prisma/client';
-
-export interface RegisterData {
-  username: string;
-  password: string;
-  email: string;
-}
-
-export interface LoginData {
-  username: string;
-  password: string;
-}
-
-export interface AuthResult {
-  success: boolean;
-  user?: Omit<User, 'passwordHash'>;
-  token?: string;
-  error?: string;
-}
+import type { RegisterData, LoginData, AuthResult } from './auth.types';
 
 export class AuthService {
   /**
-   * Register a new user - only allows one user in the system
+   * Register a new user - supports multi-user system
    */
   static async register(data: RegisterData): Promise<AuthResult> {
     try {
-      // Check if any user already exists (single-user system)
-      const existingUser = await prisma.user.findFirst();
-      
-      if (existingUser) {
-        return {
-          success: false,
-          error: 'Registration is not allowed. User already exists in the system.'
-        };
-      }
-
-      // Check if username is already taken (redundant but good for future)
+      // Check if username is already taken
       const existingUsername = await prisma.user.findUnique({
         where: { username: data.username }
       });
@@ -174,6 +147,48 @@ export class AuthService {
     } catch (error) {
       console.error('Check user existence error:', error);
       return false;
+    }
+  }
+
+  /**
+   * Verify token and return user data
+   */
+  static async verifyToken(token: string): Promise<AuthResult> {
+    try {
+      const payload = verifyToken(token);
+      
+      if (!payload) {
+        return {
+          success: false,
+          error: 'Invalid token'
+        };
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: payload.id }
+      });
+
+      if (!user) {
+        return {
+          success: false,
+          error: 'User not found'
+        };
+      }
+
+      // Return user without password hash
+      const { passwordHash: _, ...userWithoutPassword } = user;
+
+      return {
+        success: true,
+        user: userWithoutPassword
+      };
+
+    } catch (error) {
+      console.error('Token verification error:', error);
+      return {
+        success: false,
+        error: 'Failed to verify token'
+      };
     }
   }
 } 
