@@ -163,7 +163,6 @@ export function PomodoroTimer() {
 
   // Handle session completion
   useEffect(() => {
-    console.log('useEffect [time, isActive, currentSession, currentCycle]')
     if (time === 0 && !isActive) {
       // Play session end sound
       if (currentSessionData) {
@@ -176,8 +175,13 @@ export function PomodoroTimer() {
         const nextSession = currentCycle[currentSession + 1];
         setTime(nextSession.duration * 60);
         
-        // Play next session start sound
-        playSessionSound(nextSession.type, 'start');
+        // If next session is work, always open modal to remind user of their focus
+        if (nextSession.type === 'work') {
+          setShowWorkModal(true);
+        } else {
+          // Play next session start sound for rest sessions
+          playSessionSound(nextSession.type, 'start');
+        }
       } else {
         // Cycle completed
         setCurrentSession(0);
@@ -192,8 +196,13 @@ export function PomodoroTimer() {
           }
         }
         
-        // Play first session start sound
-        playSessionSound(currentCycle[0].type, 'start');
+        // If first session is work, always open modal to remind user of their focus
+        if (currentCycle[0].type === 'work') {
+          setShowWorkModal(true);
+        } else {
+          // Play first session start sound for rest sessions
+          playSessionSound(currentCycle[0].type, 'start');
+        }
       }
     }
   }, [time, isActive, currentSession, currentCycle]);
@@ -205,7 +214,7 @@ export function PomodoroTimer() {
   };
 
   const handleStart = () => {
-    if (currentSessionData?.type === 'work' && !currentWork && !isActive) {
+    if (currentSessionData?.type === 'work' && !isActive) {
       setShowWorkModal(true);
       return;
     }
@@ -223,6 +232,11 @@ export function PomodoroTimer() {
   const handleReset = () => {
     setIsActive(false);
     setTime(currentSessionData.duration * 60);
+    
+    // If it's a work session and we have current work, open modal to allow editing
+    if (currentSessionData?.type === 'work' && currentWork) {
+      setShowWorkModal(true);
+    }
   };
 
   const resetCycle = () => {
@@ -236,6 +250,11 @@ export function PomodoroTimer() {
     setCurrentWork(workDescription);
     setIsActive(true);
     setShowWorkModal(false);
+    
+    // Play session start sound when starting from modal
+    if (currentSessionData) {
+      playSessionSound(currentSessionData.type, 'start');
+    }
   };
 
   return (
@@ -350,6 +369,7 @@ export function PomodoroTimer() {
         open={showWorkModal} 
         onOpenChange={setShowWorkModal}
         onStartSession={handleWorkSessionStart}
+        existingWork={currentWork}
       />
     </>
   );

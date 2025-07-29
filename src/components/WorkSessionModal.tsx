@@ -9,10 +9,18 @@ interface WorkSessionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onStartSession: (workDescription: string) => void;
+  existingWork?: string;
 }
 
-export function WorkSessionModal({ open, onOpenChange, onStartSession }: WorkSessionModalProps) {
+export function WorkSessionModal({ open, onOpenChange, onStartSession, existingWork }: WorkSessionModalProps) {
   const [workDescription, setWorkDescription] = useState('');
+
+  // Load existing work when modal opens
+  React.useEffect(() => {
+    if (open) {
+      setWorkDescription(existingWork || '');
+    }
+  }, [open, existingWork]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
