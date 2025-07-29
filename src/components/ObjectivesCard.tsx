@@ -59,16 +59,16 @@ export function ObjectivesCard() {
     }
   };
 
-  // Mock reminder filtering logic (should be moved to API when reminders are implemented)
+  // Filter reminders by time
   const nearReminders = reminders.filter((r: any) => {
-    const reminderDate = new Date(r.date || r.scheduledAt || new Date());
+    const reminderDate = new Date(r.date || new Date());
     const now = new Date();
     const diffDays = (reminderDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
     return diffDays <= 7 && diffDays >= 0; // Next 7 days
   });
   
   const futureReminders = reminders.filter((r: any) => {
-    const reminderDate = new Date(r.date || r.scheduledAt || new Date());
+    const reminderDate = new Date(r.date || new Date());
     const now = new Date();
     const diffDays = (reminderDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
     return diffDays > 7;
@@ -207,11 +207,29 @@ export function ObjectivesCard() {
 
           {/* Reminders */}
           <div className="border-t border-slate-600 pt-4">
-            <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-              <Bell className="w-4 h-4" />
-              Reminders
-            </h4>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-white font-medium flex items-center gap-2">
+                <Bell className="w-4 h-4" />
+                Neural Reminders
+              </h4>
+              <Button 
+                size="sm" 
+                onClick={() => modals.reminders.openNew()}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                title="Set Neural Reminder"
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
             
+            {nearReminders.length === 0 && futureReminders.length === 0 && (
+              <div className="text-center py-6 text-slate-400">
+                <Bell className="w-6 h-6 mx-auto mb-2 opacity-50" />
+                <p>No neural reminders active</p>
+                <p className="text-sm">Set your first reminder to stay on track</p>
+              </div>
+            )}
+
             {nearReminders.length > 0 && (
               <div className="mb-3">
                 <h5 className="text-yellow-400 text-sm mb-2">This Week</h5>
@@ -221,7 +239,7 @@ export function ObjectivesCard() {
                       <Clock className="w-3 h-3 text-yellow-400" />
                       <span className="text-white text-sm">{reminder.text}</span>
                       <span className="text-xs text-yellow-400 ml-auto">
-                        {new Date((reminder as any).date || (reminder as any).scheduledAt || new Date()).toLocaleDateString()}
+                        {new Date(reminder.date).toLocaleDateString()}
                       </span>
                     </div>
                   ))}
@@ -238,7 +256,7 @@ export function ObjectivesCard() {
                       <Clock className="w-3 h-3 text-slate-400" />
                       <span className="text-slate-300 text-sm">{reminder.text}</span>
                       <span className="text-xs text-slate-500 ml-auto">
-                        {new Date((reminder as any).date || (reminder as any).scheduledAt || new Date()).toLocaleDateString()}
+                        {new Date(reminder.date).toLocaleDateString()}
                       </span>
                     </div>
                   ))}

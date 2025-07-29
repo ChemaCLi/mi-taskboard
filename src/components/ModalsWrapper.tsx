@@ -9,6 +9,7 @@ import { CreateObjectiveModal } from './CreateObjectiveModal';
 import { ObjectiveDetailModal } from './ObjectiveDetailModal';
 import { CreateMeetingModal } from './CreateMeetingModal';
 import { MeetingDetailModal } from './MeetingDetailModal';
+import { CreateReminderModal } from './CreateReminderModal';
 import { ReminderDetailModal } from './ReminderDetailModal';
 
 export function ModalsWrapper() {
@@ -134,17 +135,41 @@ export function ModalsWrapper() {
 
   // Reminder modal handlers
   const handleReminderSave = async (reminderData: any) => {
-    if (modals.reminders.mode === 'create') {
-      await missionData.reminders.create(reminderData);
-    } else if (modals.reminders.mode === 'edit' && modals.reminders.reminderId) {
-      await missionData.reminders.update(modals.reminders.reminderId, reminderData);
+    try {
+      if (modals.reminders.mode === 'create') {
+        console.log('Creating new reminder:', reminderData);
+        await missionData.reminders.create(reminderData);
+      } else if ((modals.reminders.mode === 'edit' || modals.reminders.mode === 'detail') && modals.reminders.reminderId) {
+        console.log('Updating reminder:', modals.reminders.reminderId, reminderData);
+        // Ensure we have the reminder ID in the data
+        const updateData = {
+          ...reminderData,
+          id: modals.reminders.reminderId
+        };
+        await missionData.reminders.update(modals.reminders.reminderId, updateData);
+      } else {
+        console.error('Invalid reminder save operation:', {
+          mode: modals.reminders.mode,
+          reminderId: modals.reminders.reminderId,
+          hasReminderData: !!reminderData
+        });
+      }
+      modals.reminders.close();
+    } catch (error) {
+      console.error('Error saving reminder:', error);
+      // Don't close modal on error so user can retry
     }
-    modals.reminders.close();
   };
 
   const handleReminderDelete = async (reminderId: string) => {
-    await missionData.reminders.delete(reminderId);
-    modals.reminders.close();
+    try {
+      console.log('Deleting reminder:', reminderId);
+      await missionData.reminders.delete(reminderId);
+      modals.reminders.close();
+    } catch (error) {
+      console.error('Error deleting reminder:', error);
+      // Don't close modal on error so user can retry
+    }
   };
 
   return (
@@ -205,6 +230,14 @@ export function ModalsWrapper() {
       )}
 
       {/* Reminder Modals */}
+      {modals.reminders.isOpen && modals.reminders.mode === 'create' && (
+        <CreateReminderModal
+          open={modals.reminders.isOpen}
+          onOpenChange={(open) => !open && modals.reminders.close()}
+          onSave={handleReminderSave} // Pass centralized save handler
+        />
+      )}
+
       {modals.reminders.isOpen && (modals.reminders.mode === 'edit' || modals.reminders.mode === 'detail') && (
         <ReminderDetailModal
           open={modals.reminders.isOpen}

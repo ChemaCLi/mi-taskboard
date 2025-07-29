@@ -12,13 +12,13 @@ import { CalendarIcon, Bell, Save, Trash2, Clock, AlertCircle } from 'lucide-rea
 interface Reminder {
   id: string;
   text: string;
-  date: Date;
+  date: Date | string;
   isNear: boolean;
   alertEnabled: boolean;
   alertMinutes: number;
   completed: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 interface ReminderDetailModalProps {
@@ -44,7 +44,7 @@ export function ReminderDetailModal({ open, onOpenChange, reminder, onSave, onDe
 
   const [selectedTime, setSelectedTime] = useState(() => {
     if (reminder?.date) {
-      const date = reminder.date;
+      const date = new Date(reminder.date); // Convert string to Date if needed
       return {
         hours: date.getHours().toString().padStart(2, '0'),
         minutes: date.getMinutes().toString().padStart(2, '0')
@@ -55,8 +55,14 @@ export function ReminderDetailModal({ open, onOpenChange, reminder, onSave, onDe
 
   React.useEffect(() => {
     if (reminder) {
-      setFormData(reminder);
-      const date = reminder.date;
+      // Convert string dates to Date objects if needed
+      const updatedReminder = {
+        ...reminder,
+        date: reminder.date ? (typeof reminder.date === 'string' ? new Date(reminder.date) : reminder.date) : new Date(),
+      };
+      setFormData(updatedReminder);
+      
+      const date = new Date(reminder.date); // Convert string to Date if needed
       setSelectedTime({
         hours: date.getHours().toString().padStart(2, '0'),
         minutes: date.getMinutes().toString().padStart(2, '0')
@@ -73,7 +79,7 @@ export function ReminderDetailModal({ open, onOpenChange, reminder, onSave, onDe
     
     const finalData = {
       ...formData,
-      date: newDate,
+      date: newDate.toISOString(), // Convert back to ISO string for API
       isNear: isReminderNear(newDate)
     };
     
@@ -124,9 +130,10 @@ export function ReminderDetailModal({ open, onOpenChange, reminder, onSave, onDe
 
   if (!open) return null;
 
-  const timeUntil = getTimeUntil(formData.date);
-  const urgencyColor = getUrgencyColor(formData.date);
-  const isOverdue = formData.date.getTime() < new Date().getTime();
+  const formDate = new Date(formData.date); // Ensure it's a Date object
+  const timeUntil = getTimeUntil(formDate);
+  const urgencyColor = getUrgencyColor(formDate);
+  const isOverdue = formDate.getTime() < new Date().getTime();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -176,13 +183,13 @@ export function ReminderDetailModal({ open, onOpenChange, reminder, onSave, onDe
                     className="w-full justify-start bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.date ? formData.date.toLocaleDateString() : "Select date"}
+                    {formData.date ? new Date(formData.date).toLocaleDateString() : "Select date"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600">
                   <Calendar
                     mode="single"
-                    selected={formData.date}
+                    selected={new Date(formData.date)}
                     onSelect={(date) => setFormData({...formData, date: date || new Date()})}
                     initialFocus
                   />
@@ -243,7 +250,7 @@ export function ReminderDetailModal({ open, onOpenChange, reminder, onSave, onDe
                   <span className="text-slate-400">minutes</span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  You will be alerted at {new Date(formData.date.getTime() - formData.alertMinutes * 60 * 1000).toLocaleString()}
+                  You will be alerted at {new Date(new Date(formData.date).getTime() - formData.alertMinutes * 60 * 1000).toLocaleString()}
                 </p>
               </div>
             )}

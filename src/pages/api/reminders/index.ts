@@ -87,10 +87,10 @@ export const POST: APIRoute = async ({ request }) => {
     const data = await request.json();
     
     // Validate required fields
-    if (!data.text || !data.date) {
+    if (!data.text) {
       return new Response(JSON.stringify({
         success: false,
-        error: 'Text and date are required'
+        error: 'Text is required'
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
