@@ -36,12 +36,24 @@ export class AuthService {
       // Hash password
       const passwordHash = await hashPassword(data.password);
 
-      // Create user
+      // Create user with default settings
       const user = await prisma.user.create({
         data: {
           username: data.username,
           email: data.email,
-          passwordHash
+          passwordHash,
+          settings: {
+            create: {
+              startHour: 9,
+              endHour: 18,
+              lunchStart: 13,
+              lunchEnd: 14,
+              workDuration: 25,
+              shortBreak: 5,
+              longBreak: 15,
+              meetingAlert: 5
+            }
+          }
         }
       });
 

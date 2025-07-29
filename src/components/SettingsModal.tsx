@@ -1,18 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Separator } from './ui/separator';
-import { Settings, Clock, Bell, Database, Calendar } from 'lucide-react';
+import { Settings, Clock, Bell, Database, Calendar, Loader2 } from 'lucide-react';
 
 interface SettingsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
+interface SettingsData {
+  startHour: number;
+  endHour: number;
+  lunchStart: number;
+  lunchEnd: number;
+  workDuration: number;
+  shortBreak: number;
+  longBreak: number;
+  meetingAlert: number;
+}
+
 export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
   const [workSchedule, setWorkSchedule] = useState({
     workStart: 9,
     workEnd: 18,
@@ -31,11 +46,104 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     reminderAlert: 60
   });
 
-  const handleSave = () => {
-    // Save settings
-    console.log('Saving settings:', { workSchedule, pomodoroSettings, notifications });
-    onOpenChange(false);
+  // Fetch settings when modal opens
+  useEffect(() => {
+    if (open) {
+      fetchSettings();
+    }
+  }, [open]);
+
+  const fetchSettings = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/settings');
+      if (!response.ok) {
+        throw new Error('Failed to fetch settings');
+      }
+      
+      const settings: SettingsData = await response.json();
+      
+      // Update state with fetched settings
+      setWorkSchedule({
+        workStart: settings.startHour,
+        workEnd: settings.endHour,
+        lunchStart: settings.lunchStart,
+        lunchEnd: settings.lunchEnd
+      });
+      
+      setPomodoroSettings({
+        workDuration: settings.workDuration,
+        shortBreak: settings.shortBreak,
+        longBreak: settings.longBreak
+      });
+      
+      setNotifications({
+        meetingAlert: settings.meetingAlert,
+        reminderAlert: 60 // Default value as it's not in the schema yet
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch settings');
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    setError(null);
+    
+    try {
+      const settingsData = {
+        startHour: workSchedule.workStart,
+        endHour: workSchedule.workEnd,
+        lunchStart: workSchedule.lunchStart,
+        lunchEnd: workSchedule.lunchEnd,
+        workDuration: pomodoroSettings.workDuration,
+        shortBreak: pomodoroSettings.shortBreak,
+        longBreak: pomodoroSettings.longBreak,
+        meetingAlert: notifications.meetingAlert
+      };
+
+      const response = await fetch('/api/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settingsData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save settings');
+      }
+
+      onOpenChange(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save settings');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl bg-slate-900 border-slate-600">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Settings className="w-5 h-5" />
+              Settings
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />
+            <span className="ml-2 text-white">Loading settings...</span>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -47,6 +155,12 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
           </DialogTitle>
         </DialogHeader>
         
+        {error && (
+          <div className="p-3 bg-red-900/20 border border-red-500/30 rounded-lg mb-4">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
+        
         <Tabs defaultValue="schedule" className="space-y-4">
           <TabsList className="grid w-full grid-cols-4 bg-slate-800">
             <TabsTrigger value="schedule" className="text-white">Schedule</TabsTrigger>
@@ -55,7 +169,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
             <TabsTrigger value="data" className="text-white">Data</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="work" className="space-y-4">
+          <TabsContent value="schedule" className="space-y-4">
             <div className="flex items-center gap-2 mb-4">
               <Calendar className="w-4 h-4 text-blue-400" />
               <h3 className="text-white font-medium">Work Schedule</h3>
@@ -194,7 +308,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
             <div className="space-y-4">
               <div className="p-4 bg-slate-800 rounded-lg">
                 <h4 className="text-white font-medium mb-2">Storage Locations</h4>
-                <ul className="text-slate-400 text-sm space-y-1">
+                <ul className="text-slate-300 text-sm space-y-1">
                   <li>• SQLite: Settings, daily stats, task history</li>
                   <li>• Markdown Files: Virtual notebook entries</li>
                   <li>• Log Files: Daily snapshots and session logs</li>
@@ -216,11 +330,27 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
         <Separator className="bg-slate-600" />
         
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)} 
+            className="bg-slate-600 border-slate-500 text-white hover:bg-slate-500 hover:border-slate-400"
+            disabled={isSaving}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSave} className="bg-cyan-600 hover:bg-cyan-700">
-            Save Settings
+          <Button 
+            onClick={handleSave} 
+            className="bg-cyan-600 hover:bg-cyan-700"
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                Saving...
+              </>
+            ) : (
+              'Save Settings'
+            )}
           </Button>
         </div>
       </DialogContent>
