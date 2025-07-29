@@ -250,6 +250,18 @@ export function MissionDataProvider({ children }: MissionDataProviderProps) {
     const update = async (id: string, updateData: Partial<T>): Promise<T | null> => {
       try {
         console.log(`MissionData: Updating ${entityName} ${id} with data:`, updateData);
+        
+        // Optimistic update: immediately update the UI
+        const originalData = [...data];
+        const itemToUpdate = data.find(item => item.id === id);
+        
+        if (itemToUpdate) {
+          const optimisticItem = { ...itemToUpdate, ...updateData };
+          setData(prev => prev.map(item => item.id === id ? optimisticItem : item));
+          console.log(`MissionData: Applied optimistic update for ${entityName} ${id}`);
+        }
+
+        // Make the actual API call
         const result = await makeRequest(`/api/${apiEndpoint}/${id}`, {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -263,6 +275,7 @@ export function MissionDataProvider({ children }: MissionDataProviderProps) {
           console.log(`MissionData: Updated ${entityName} item:`, updatedItem);
           
           if (updatedItem) {
+            // Update with the server response
             setData(prev => {
               const newData = prev.map(item => item.id === id ? updatedItem : item);
               console.log(`MissionData: Updated ${entityName} data:`, newData);
@@ -274,10 +287,15 @@ export function MissionDataProvider({ children }: MissionDataProviderProps) {
             throw new Error(`No ${itemKey} in response`);
           }
         } else {
+          // Rollback optimistic update on error
+          setData(originalData);
+          console.log(`MissionData: Rolled back optimistic update for ${entityName} ${id}`);
           throw new Error(result.error || 'Failed to update item');
         }
       } catch (error) {
         console.error(`Error updating ${entityName}:`, error);
+        // Rollback optimistic update on error
+        setData(prev => prev.map(item => item.id === id ? data.find(d => d.id === id)! : item));
         return null;
       }
     };

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback } from 'react';
+import React, { createContext, useContext, useCallback, useState } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -17,6 +17,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Badge } from './ui/badge';
+import { Clock } from 'lucide-react';
 import { useMissionData } from './MissionDataContext';
 
 interface Task {
@@ -59,8 +60,52 @@ interface TaskDragDropProviderProps {
   children: React.ReactNode;
 }
 
+// Drag Overlay Component
+function TaskDragOverlay({ task }: { task: Task }) {
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'ASAP': return 'border-red-400 text-red-400';
+      case 'HIGH': return 'border-orange-400 text-orange-400';
+      case 'MEDIUM': return 'border-yellow-400 text-yellow-400';
+      case 'LOW': return 'border-green-400 text-green-400';
+      default: return 'border-slate-400 text-slate-400';
+    }
+  };
+
+  return (
+    <div className="p-3 bg-slate-700 rounded-lg border border-slate-600 shadow-lg opacity-90 cursor-grabbing transform rotate-2 scale-105">
+      <div className="space-y-2">
+        <div className="flex items-start justify-between">
+          <h4 className="text-white font-medium text-sm flex-1">{task.title}</h4>
+          <Badge variant="outline" className={`text-xs ${getPriorityColor(task.priority)}`}>
+            {task.priority}
+          </Badge>
+        </div>
+        
+        {task.description && (
+          <p className="text-slate-400 text-xs line-clamp-2">{task.description}</p>
+        )}
+        
+        <div className="flex items-center justify-between text-xs text-slate-400">
+          <div className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            <span>{task.timeNeeded || 0}h</span>
+          </div>
+          
+          {task.limitDate && (
+            <div className="text-orange-400">
+              {new Date(task.limitDate).toLocaleDateString()}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function TaskDragDropProvider({ children }: TaskDragDropProviderProps) {
   const missionData = useMissionData();
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
   
   // Configure sensors for drag and drop
   const sensors = useSensors(
@@ -98,10 +143,23 @@ export function TaskDragDropProvider({ children }: TaskDragDropProviderProps) {
     }
   };
 
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const { active } = event;
+    const taskId = active.id as string;
+    const task = missionData.tasks.get().find(t => t.id === taskId);
+    if (task) {
+      setActiveTask(task);
+      console.log('Started dragging task:', task.title);
+    }
+  }, [missionData.tasks]);
+
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
     
-    if (!over || !active) return;
+    if (!over || !active) {
+      setActiveTask(null);
+      return;
+    }
     
     const taskId = active.id as string;
     const targetContainerId = over.id as string;
@@ -109,10 +167,16 @@ export function TaskDragDropProvider({ children }: TaskDragDropProviderProps) {
     
     // Find the current task
     const currentTask = missionData.tasks.get().find(task => task.id === taskId);
-    if (!currentTask) return;
+    if (!currentTask) {
+      setActiveTask(null);
+      return;
+    }
     
     // Skip update if task is already in the target status
-    if (currentTask.status === newStatus) return;
+    if (currentTask.status === newStatus) {
+      setActiveTask(null);
+      return;
+    }
 
     console.log(`Moving task ${taskId} from ${currentTask.status} to ${newStatus}`);
 
@@ -139,22 +203,9 @@ export function TaskDragDropProvider({ children }: TaskDragDropProviderProps) {
       console.error('Error moving task:', error);
       // The MissionDataContext should handle error rollback
     }
+
+    setActiveTask(null);
   }, [missionData.tasks]);
-
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    // This can be used for visual feedback during drag operations
-    // For now, we'll keep it simple
-  }, []);
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'ASAP': return 'bg-red-600 text-white';
-      case 'HIGH': return 'bg-orange-600 text-white';
-      case 'MEDIUM': return 'bg-yellow-600 text-black';
-      case 'LOW': return 'bg-green-600 text-white';
-      default: return 'bg-gray-600 text-white';
-    }
-  };
 
   return (
     <TaskDragDropContext.Provider value={{}}>
@@ -166,7 +217,9 @@ export function TaskDragDropProvider({ children }: TaskDragDropProviderProps) {
       >
         {children}
         <DragOverlay>
-          {/* We'll handle the drag overlay in individual components if needed */}
+          {activeTask ? (
+            <TaskDragOverlay task={activeTask} />
+          ) : null}
         </DragOverlay>
       </DndContext>
     </TaskDragDropContext.Provider>
