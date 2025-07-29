@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Play, Pause, RotateCcw, Settings, Target } from 'lucide-react';
 import { WorkSessionModal } from './WorkSessionModal';
 import { useMissionData } from './MissionDataContext';
+import { audioService } from '../lib/audio';
 
 type SessionType = 'work' | 'rest';
 type CycleMode = '3' | '4' | '5';
@@ -20,19 +21,31 @@ export function PomodoroTimer() {
   const missionData = useMissionData();
   const settings = missionData.settings.get()[0]; // Get the first (and only) settings object
   
+  // Don't render until settings are loaded
+  if (!settings) {
+    return (
+      <Card className="bg-slate-800/50 border-yellow-400/30">
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="text-slate-400">Loading timer settings...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
   const [isActive, setIsActive] = useState(false);
-  const [time, setTime] = useState(25 * 60); // 25 minutes in seconds
+  const [time, setTime] = useState(settings.workDuration * 60); // Start with work duration
   const [currentSession, setCurrentSession] = useState(0);
   const [cycleMode, setCycleMode] = useState<CycleMode>('3');
   const [showWorkModal, setShowWorkModal] = useState(false);
   const [currentWork, setCurrentWork] = useState('');
   
-  // Use settings if available, otherwise fallback to defaults
-  const workDuration = settings?.workDuration || 25;
-  const shortBreak = settings?.shortBreak || 5;
-  const longBreak = settings?.longBreak || 15;
+  // Use settings for durations
+  const workDuration = settings.workDuration;
+  const shortBreak = settings.shortBreak;
+  const longBreak = settings.longBreak;
 
-  const getCycle = (mode: CycleMode): Session[] => {
+  // Memoize the cycle to prevent infinite re-renders
+  const currentCycle = useMemo(() => {
     const cycles: Record<CycleMode, Session[]> = {
       '3': [
         { type: 'work', duration: workDuration },
@@ -65,46 +78,125 @@ export function PomodoroTimer() {
         { type: 'rest', duration: longBreak }
       ]
     };
-    return cycles[mode];
-  };
+    return cycles[cycleMode];
+  }, [cycleMode, workDuration, shortBreak, longBreak]);
 
-  const currentCycle = getCycle(cycleMode);
   const currentSessionData = currentCycle[currentSession];
-  const totalDuration = currentSessionData ? currentSessionData.duration * 60 : 25 * 60;
+  const totalDuration = currentSessionData.duration * 60;
   const progress = ((totalDuration - time) / totalDuration) * 100;
 
-  // Update time when settings change
+  // Initialize audio service
   useEffect(() => {
-    if (currentSessionData) {
-      setTime(currentSessionData.duration * 60);
-    }
-  }, [currentSessionData, workDuration, shortBreak, longBreak]);
+    const initAudio = async () => {
+      try {
+        await audioService.initialize();
+        if (settings.audioVolume !== undefined) {
+          audioService.setVolume(settings.audioVolume);
+        }
+        if (settings.audioEnabled !== undefined) {
+          audioService.setMuted(!settings.audioEnabled);
+        }
+      } catch (error) {
+        console.warn('Audio service initialization failed:', error);
+      }
+    };
 
+    initAudio();
+  }, [settings.audioVolume, settings.audioEnabled]);
+
+  // Update time when session changes (only when currentSession changes, not currentSessionData)
   useEffect(() => {
+    console.log('time state setted from the session data', currentCycle[currentSession].duration * 60);
+    setTime(currentCycle[currentSession].duration * 60);
+  }, [currentSession, currentCycle]);
+
+  // Play sounds based on session changes
+  const playSessionSound = (sessionType: SessionType, action: 'start' | 'end') => {
+    if (!settings.pomodoroSounds) return;
+    
+    try {
+      if (sessionType === 'work') {
+        if (action === 'start') {
+          audioService.playSound('workStart');
+        } else {
+          audioService.playSound('workEnd');
+        }
+      } else {
+        if (action === 'start') {
+          audioService.playSound('breakStart');
+        } else {
+          audioService.playSound('breakEnd');
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to play sound:', error);
+    }
+  };
+
+  // Timer countdown effect
+  useEffect(() => {
+    console.log('useState [isActive]')
     let interval: NodeJS.Timeout | null = null;
     
     if (isActive && time > 0) {
       interval = setInterval(() => {
-        setTime(time => time - 1);
+        console.log('time', time);
+        setTime(prevTime => {
+          if (prevTime <= 1) {
+            setIsActive(false);
+            return 0;
+          }
+          console.log('lets remove 1 second')
+          return prevTime - 1;
+        });
       }, 1000);
-    } else if (time === 0) {
-      // Session completed
-      setIsActive(false);
+    }
+    
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [isActive]);
+
+  console.log('time state', time);
+
+  // Handle session completion
+  useEffect(() => {
+    console.log('useEffect [time, isActive, currentSession, currentCycle]')
+    if (time === 0 && !isActive) {
+      // Play session end sound
+      if (currentSessionData) {
+        playSessionSound(currentSessionData.type, 'end');
+      }
+      
+      // Move to next session or complete cycle
       if (currentSession < currentCycle.length - 1) {
         setCurrentSession(currentSession + 1);
         const nextSession = currentCycle[currentSession + 1];
         setTime(nextSession.duration * 60);
+        
+        // Play next session start sound
+        playSessionSound(nextSession.type, 'start');
       } else {
         // Cycle completed
         setCurrentSession(0);
         setTime(currentCycle[0].duration * 60);
+        
+        // Play cycle complete sound
+        if (settings.pomodoroSounds) {
+          try {
+            audioService.playSound('cycleComplete');
+          } catch (error) {
+            console.warn('Failed to play cycle complete sound:', error);
+          }
+        }
+        
+        // Play first session start sound
+        playSessionSound(currentCycle[0].type, 'start');
       }
     }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isActive, time, currentSession, currentCycle]);
+  }, [time, isActive, currentSession, currentCycle]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -117,12 +209,20 @@ export function PomodoroTimer() {
       setShowWorkModal(true);
       return;
     }
+    
+    if (!isActive) {
+      // Play session start sound when starting
+      if (currentSessionData) {
+        playSessionSound(currentSessionData.type, 'start');
+      }
+    }
+    
     setIsActive(!isActive);
   };
 
   const handleReset = () => {
     setIsActive(false);
-    setTime(currentSessionData ? currentSessionData.duration * 60 : 25 * 60);
+    setTime(currentSessionData.duration * 60);
   };
 
   const resetCycle = () => {
@@ -178,8 +278,11 @@ export function PomodoroTimer() {
             </Badge>
             <Progress 
               value={progress} 
+              mode="inverted"
               className={`h-2 mt-3 ${
-                currentSessionData?.type === 'work' ? 'bg-yellow-600' : 'bg-blue-900'
+                currentSessionData?.type === 'work' 
+                  ? '[&>*]:bg-yellow-500 bg-yellow-500/20' 
+                  : '[&>*]:bg-blue-500 bg-blue-500/20'
               }`} 
             />
           </div>
@@ -230,9 +333,9 @@ export function PomodoroTimer() {
                   className={`
                     flex-1 h-2 rounded-sm
                     ${index < currentSession 
-                      ? (session.type === 'work' ? 'bg-green-500' : 'bg-blue-400')
+                      ? 'bg-green-500'
                       : index === currentSession
-                      ? (session.type === 'work' ? 'bg-green-500/50' : 'bg-blue-400/50')
+                      ? 'bg-green-500/50'
                       : 'bg-slate-600'
                     }
                   `}

@@ -95,6 +95,11 @@ interface Settings {
   shortBreak: number;
   longBreak: number;
   meetingAlert: number;
+  audioEnabled: boolean;
+  audioVolume: number;
+  pomodoroSounds: boolean;
+  notificationSounds: boolean;
+  uiSounds: boolean;
   createdAt: string;
   updatedAt: string;
   userId: string;

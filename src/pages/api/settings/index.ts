@@ -22,7 +22,12 @@ export const GET: APIRoute = async (context) => {
             workDuration: 25,
             shortBreak: 5,
             longBreak: 15,
-            meetingAlert: 5
+            meetingAlert: 5,
+            audioEnabled: true,
+            audioVolume: 0.5,
+            pomodoroSounds: true,
+            notificationSounds: true,
+            uiSounds: false
           }
         });
 
@@ -78,7 +83,12 @@ export const POST: APIRoute = async (context) => {
             workDuration: body.workDuration || 25,
             shortBreak: body.shortBreak || 5,
             longBreak: body.longBreak || 15,
-            meetingAlert: body.meetingAlert || 5
+            meetingAlert: body.meetingAlert || 5,
+            audioEnabled: body.audioEnabled || true,
+            audioVolume: body.audioVolume || 0.5,
+            pomodoroSounds: body.pomodoroSounds || true,
+            notificationSounds: body.notificationSounds || true,
+            uiSounds: body.uiSounds || false
           }
         });
       } else {
@@ -93,7 +103,12 @@ export const POST: APIRoute = async (context) => {
             workDuration: body.workDuration || 25,
             shortBreak: body.shortBreak || 5,
             longBreak: body.longBreak || 15,
-            meetingAlert: body.meetingAlert || 5
+            meetingAlert: body.meetingAlert || 5,
+            audioEnabled: body.audioEnabled || true,
+            audioVolume: body.audioVolume || 0.5,
+            pomodoroSounds: body.pomodoroSounds || true,
+            notificationSounds: body.notificationSounds || true,
+            uiSounds: body.uiSounds || false
           }
         });
       }

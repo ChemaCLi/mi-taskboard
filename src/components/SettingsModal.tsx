@@ -22,6 +22,11 @@ interface SettingsData {
   shortBreak: number;
   longBreak: number;
   meetingAlert: number;
+  audioEnabled: boolean;
+  audioVolume: number;
+  pomodoroSounds: boolean;
+  notificationSounds: boolean;
+  uiSounds: boolean;
 }
 
 export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
@@ -49,6 +54,14 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
     reminderAlert: 60
   });
 
+  const [audioSettings, setAudioSettings] = useState({
+    audioEnabled: true,
+    audioVolume: 0.5,
+    pomodoroSounds: true,
+    notificationSounds: true,
+    uiSounds: false
+  });
+
   // Load settings when modal opens or settings change
   useEffect(() => {
     if (open && settings) {
@@ -69,6 +82,14 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
         meetingAlert: settings.meetingAlert,
         reminderAlert: 60 // Default value as it's not in the schema yet
       });
+
+      setAudioSettings({
+        audioEnabled: settings.audioEnabled ?? true,
+        audioVolume: settings.audioVolume ?? 0.5,
+        pomodoroSounds: settings.pomodoroSounds ?? true,
+        notificationSounds: settings.notificationSounds ?? true,
+        uiSounds: settings.uiSounds ?? false
+      });
     }
   }, [open, settings]);
 
@@ -85,7 +106,12 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
         workDuration: pomodoroSettings.workDuration,
         shortBreak: pomodoroSettings.shortBreak,
         longBreak: pomodoroSettings.longBreak,
-        meetingAlert: notifications.meetingAlert
+        meetingAlert: notifications.meetingAlert,
+        audioEnabled: audioSettings.audioEnabled,
+        audioVolume: audioSettings.audioVolume,
+        pomodoroSounds: audioSettings.pomodoroSounds,
+        notificationSounds: audioSettings.notificationSounds,
+        uiSounds: audioSettings.uiSounds
       };
 
       // Use the settings manager to update
@@ -140,10 +166,11 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
         )}
         
         <Tabs defaultValue="schedule" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4 bg-slate-800">
+          <TabsList className="grid w-full grid-cols-5 bg-slate-800">
             <TabsTrigger value="schedule" className="text-white">Schedule</TabsTrigger>
             <TabsTrigger value="pomodoro" className="text-white">Pomodoro</TabsTrigger>
             <TabsTrigger value="notifications" className="text-white">Alerts</TabsTrigger>
+            <TabsTrigger value="audio" className="text-white">Audio</TabsTrigger>
             <TabsTrigger value="data" className="text-white">Data</TabsTrigger>
           </TabsList>
           
@@ -271,6 +298,65 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                   max="1440"
                   value={notifications.reminderAlert}
                   onChange={(e) => setNotifications({...notifications, reminderAlert: parseInt(e.target.value)})}
+                  className="bg-slate-800 border-slate-600 text-white"
+                />
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="audio" className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Bell className="w-4 h-4 text-yellow-400" />
+              <h3 className="text-white font-medium">Audio Settings</h3>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <Label className="text-white">Enable Audio</Label>
+                <input
+                  type="checkbox"
+                  checked={audioSettings.audioEnabled}
+                  onChange={(e) => setAudioSettings({...audioSettings, audioEnabled: e.target.checked})}
+                  className="bg-slate-800 border-slate-600 text-white"
+                />
+              </div>
+              <div>
+                <Label className="text-white">Audio Volume</Label>
+                <Input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={audioSettings.audioVolume}
+                  onChange={(e) => setAudioSettings({...audioSettings, audioVolume: parseFloat(e.target.value)})}
+                  className="w-full accent-cyan-400"
+                />
+                <span className="text-slate-400 text-xs">{audioSettings.audioVolume.toFixed(2)}</span>
+              </div>
+              <div>
+                <Label className="text-white">Pomodoro Sounds</Label>
+                <input
+                  type="checkbox"
+                  checked={audioSettings.pomodoroSounds}
+                  onChange={(e) => setAudioSettings({...audioSettings, pomodoroSounds: e.target.checked})}
+                  className="bg-slate-800 border-slate-600 text-white"
+                />
+              </div>
+              <div>
+                <Label className="text-white">Notification Sounds</Label>
+                <input
+                  type="checkbox"
+                  checked={audioSettings.notificationSounds}
+                  onChange={(e) => setAudioSettings({...audioSettings, notificationSounds: e.target.checked})}
+                  className="bg-slate-800 border-slate-600 text-white"
+                />
+              </div>
+              <div>
+                <Label className="text-white">UI Sounds</Label>
+                <input
+                  type="checkbox"
+                  checked={audioSettings.uiSounds}
+                  onChange={(e) => setAudioSettings({...audioSettings, uiSounds: e.target.checked})}
                   className="bg-slate-800 border-slate-600 text-white"
                 />
               </div>
