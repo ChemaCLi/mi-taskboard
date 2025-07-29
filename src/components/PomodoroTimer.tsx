@@ -129,9 +129,9 @@ export function PomodoroTimer() {
 
   return (
     <>
-      <Card className="bg-slate-800/50 border-orange-400/30">
+      <Card className="bg-slate-800/50 border-yellow-400/30">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center justify-between text-orange-400">
+          <CardTitle className="flex items-center justify-between text-yellow-400">
             <div className="flex items-center gap-2">
               <Target className="w-5 h-5" />
               Focus Timer
@@ -158,7 +158,7 @@ export function PomodoroTimer() {
               variant="outline" 
               className={`
                 ${currentSessionData?.type === 'work' 
-                  ? 'border-orange-400 text-orange-400' 
+                  ? 'border-yellow-400 text-yellow-400' 
                   : 'border-blue-400 text-blue-400'
                 }
               `}
@@ -168,15 +168,15 @@ export function PomodoroTimer() {
             <Progress 
               value={progress} 
               className={`h-2 mt-3 ${
-                currentSessionData?.type === 'work' ? 'bg-orange-900' : 'bg-blue-900'
+                currentSessionData?.type === 'work' ? 'bg-yellow-600' : 'bg-blue-900'
               }`} 
             />
           </div>
 
           {/* Current Work */}
           {currentWork && currentSessionData?.type === 'work' && (
-            <div className="p-3 bg-orange-400/10 rounded-lg border border-orange-400/30">
-              <p className="text-orange-400 text-sm font-medium">Current Focus:</p>
+            <div className="p-3 bg-yellow-400/10 rounded-lg border border-yellow-400/30">
+              <p className="text-yellow-400 text-sm font-medium">Current Focus:</p>
               <p className="text-white text-sm">{currentWork}</p>
             </div>
           )}
@@ -187,7 +187,7 @@ export function PomodoroTimer() {
               onClick={handleStart}
               className={`
                 ${currentSessionData?.type === 'work' 
-                  ? 'bg-orange-600 hover:bg-orange-700' 
+                  ? 'bg-yellow-600 hover:bg-yellow-700' 
                   : 'bg-blue-600 hover:bg-blue-700'
                 } text-white
               `}
@@ -219,9 +219,9 @@ export function PomodoroTimer() {
                   className={`
                     flex-1 h-2 rounded-sm
                     ${index < currentSession 
-                      ? (session.type === 'work' ? 'bg-orange-400' : 'bg-blue-400')
+                      ? (session.type === 'work' ? 'bg-green-500' : 'bg-blue-400')
                       : index === currentSession
-                      ? (session.type === 'work' ? 'bg-orange-400/50' : 'bg-blue-400/50')
+                      ? (session.type === 'work' ? 'bg-green-500/50' : 'bg-blue-400/50')
                       : 'bg-slate-600'
                     }
                   `}
