@@ -146,11 +146,11 @@ export function CreateMeetingModal({ open, onOpenChange, onSave }: CreateMeeting
               <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
                 <SelectValue placeholder="Select protocol type" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-600">
-                <SelectItem value="standup">Daily Sync</SelectItem>
-                <SelectItem value="review">Strategic Review</SelectItem>
-                <SelectItem value="planning">Mission Planning</SelectItem>
-                <SelectItem value="other">Custom Protocol</SelectItem>
+              <SelectContent className="bg-slate-700 border-slate-600 text-white">
+                <SelectItem value="standup" className="text-white hover:bg-slate-600 focus:bg-slate-600">Daily Sync</SelectItem>
+                <SelectItem value="review" className="text-white hover:bg-slate-600 focus:bg-slate-600">Strategic Review</SelectItem>
+                <SelectItem value="planning" className="text-white hover:bg-slate-600 focus:bg-slate-600">Mission Planning</SelectItem>
+                <SelectItem value="other" className="text-white hover:bg-slate-600 focus:bg-slate-600">Custom Protocol</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -161,13 +161,13 @@ export function CreateMeetingModal({ open, onOpenChange, onSave }: CreateMeeting
               <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
                 <SelectValue placeholder="Select duration" />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-600">
-                <SelectItem value="15">15 min - Quick Sync</SelectItem>
-                <SelectItem value="30">30 min - Standard Brief</SelectItem>
-                <SelectItem value="45">45 min - Extended Session</SelectItem>
-                <SelectItem value="60">1 hr - Full Briefing</SelectItem>
-                <SelectItem value="90">1.5 hr - Strategic Review</SelectItem>
-                <SelectItem value="120">2 hr - Deep Dive</SelectItem>
+              <SelectContent className="bg-slate-700 border-slate-600 text-white">
+                <SelectItem value="15" className="text-white hover:bg-slate-600 focus:bg-slate-600">15 min - Quick Sync</SelectItem>
+                <SelectItem value="30" className="text-white hover:bg-slate-600 focus:bg-slate-600">30 min - Standard Brief</SelectItem>
+                <SelectItem value="45" className="text-white hover:bg-slate-600 focus:bg-slate-600">45 min - Extended Session</SelectItem>
+                <SelectItem value="60" className="text-white hover:bg-slate-600 focus:bg-slate-600">1 hr - Full Briefing</SelectItem>
+                <SelectItem value="90" className="text-white hover:bg-slate-600 focus:bg-slate-600">1.5 hr - Strategic Review</SelectItem>
+                <SelectItem value="120" className="text-white hover:bg-slate-600 focus:bg-slate-600">2 hr - Deep Dive</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -197,12 +197,13 @@ export function CreateMeetingModal({ open, onOpenChange, onSave }: CreateMeeting
                   {formData.date ? formData.date.toLocaleDateString() : "Select date"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600">
+              <PopoverContent className="w-auto p-0 bg-slate-700 border-slate-600">
                 <Calendar
                   mode="single"
                   selected={formData.date}
                   onSelect={(date) => setFormData({...formData, date: date || undefined})}
                   initialFocus
+                  className="text-white"
                 />
               </PopoverContent>
             </Popover>

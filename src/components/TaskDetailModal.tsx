@@ -222,11 +222,11 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
               <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-600">
-                <SelectItem value="ASAP">🔴 ASAP - Critical</SelectItem>
-                <SelectItem value="HIGH">🟠 High Priority</SelectItem>
-                <SelectItem value="MEDIUM">🟡 Medium Priority</SelectItem>
-                <SelectItem value="LOW">🟢 Low Priority</SelectItem>
+              <SelectContent className="bg-slate-700 border-slate-600 text-white">
+                <SelectItem value="ASAP" className="text-white hover:bg-slate-600 focus:bg-slate-600">🔴 ASAP - Critical</SelectItem>
+                <SelectItem value="HIGH" className="text-white hover:bg-slate-600 focus:bg-slate-600">🟠 High Priority</SelectItem>
+                <SelectItem value="MEDIUM" className="text-white hover:bg-slate-600 focus:bg-slate-600">🟡 Medium Priority</SelectItem>
+                <SelectItem value="LOW" className="text-white hover:bg-slate-600 focus:bg-slate-600">🟢 Low Priority</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -237,12 +237,12 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
               <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-600">
-                <SelectItem value="BACKLOG">📋 Mission Backlog</SelectItem>
-                <SelectItem value="TODAY">⭐ Today's Missions</SelectItem>
-                <SelectItem value="DOING">🔥 Active Mission</SelectItem>
-                <SelectItem value="COMPLETED">✅ Mission Complete</SelectItem>
-                <SelectItem value="TOMORROW">🌅 Tomorrow's Missions</SelectItem>
+              <SelectContent className="bg-slate-700 border-slate-600 text-white">
+                <SelectItem value="BACKLOG" className="text-white hover:bg-slate-600 focus:bg-slate-600">📋 Mission Backlog</SelectItem>
+                <SelectItem value="TODAY" className="text-white hover:bg-slate-600 focus:bg-slate-600">⭐ Today's Missions</SelectItem>
+                <SelectItem value="DOING" className="text-white hover:bg-slate-600 focus:bg-slate-600">🔥 Active Mission</SelectItem>
+                <SelectItem value="COMPLETED" className="text-white hover:bg-slate-600 focus:bg-slate-600">✅ Mission Complete</SelectItem>
+                <SelectItem value="TOMORROW" className="text-white hover:bg-slate-600 focus:bg-slate-600">🌅 Tomorrow's Missions</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -265,10 +265,10 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
               <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-600">
-                <SelectItem value="Simple">🟢 Simple</SelectItem>
-                <SelectItem value="Moderate">🟡 Moderate</SelectItem>
-                <SelectItem value="Complex">🔴 Complex</SelectItem>
+              <SelectContent className="bg-slate-700 border-slate-600 text-white">
+                <SelectItem value="Simple" className="text-white hover:bg-slate-600 focus:bg-slate-600">🟢 Simple</SelectItem>
+                <SelectItem value="Moderate" className="text-white hover:bg-slate-600 focus:bg-slate-600">🟡 Moderate</SelectItem>
+                <SelectItem value="Complex" className="text-white hover:bg-slate-600 focus:bg-slate-600">🔴 Complex</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -289,12 +289,13 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
                     ) : "Select deadline"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600">
+              <PopoverContent className="w-auto p-0 bg-slate-700 border-slate-600">
                 <Calendar
                   mode="single"
                   selected={formData.limitDate instanceof Date ? formData.limitDate : formData.limitDate ? new Date(formData.limitDate) : undefined}
                   onSelect={(date) => setFormData({...formData, limitDate: date})}
                   initialFocus
+                  className="text-white"
                 />
               </PopoverContent>
             </Popover>
@@ -315,8 +316,8 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
                   )}
                 </SelectValue>
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-600">
-                <SelectItem value="none">No objective</SelectItem>
+              <SelectContent className="bg-slate-700 border-slate-600 text-white">
+                <SelectItem value="none" className="text-white hover:bg-slate-600 focus:bg-slate-600">No objective</SelectItem>
                 {objectives
                   .filter(obj => obj.status === 'ACTIVE')
                   .map(objective => (

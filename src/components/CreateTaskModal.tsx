@@ -168,11 +168,11 @@ export function CreateTaskModal({ open, onOpenChange, onSave }: CreateTaskModalP
                 <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ASAP">🔴 ASAP - Critical</SelectItem>
-                  <SelectItem value="HIGH">🟠 High Priority</SelectItem>
-                  <SelectItem value="MEDIUM">🟡 Medium Priority</SelectItem>
-                  <SelectItem value="LOW">🟢 Low Priority</SelectItem>
+                <SelectContent className="bg-slate-700 border-slate-600 text-white">
+                  <SelectItem value="ASAP" className="text-white hover:bg-slate-600 focus:bg-slate-600">🔴 ASAP - Critical</SelectItem>
+                  <SelectItem value="HIGH" className="text-white hover:bg-slate-600 focus:bg-slate-600">🟠 High Priority</SelectItem>
+                  <SelectItem value="MEDIUM" className="text-white hover:bg-slate-600 focus:bg-slate-600">🟡 Medium Priority</SelectItem>
+                  <SelectItem value="LOW" className="text-white hover:bg-slate-600 focus:bg-slate-600">🟢 Low Priority</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -205,12 +205,13 @@ export function CreateTaskModal({ open, onOpenChange, onSave }: CreateTaskModalP
                     {formData.limitDate ? formData.limitDate.toLocaleDateString() : "Select deadline"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0 bg-slate-700 border-slate-600">
                   <Calendar
                     mode="single"
                     selected={formData.limitDate}
                     onSelect={(date) => setFormData({...formData, limitDate: date})}
                     initialFocus
+                    className="text-white"
                   />
                 </PopoverContent>
               </Popover>

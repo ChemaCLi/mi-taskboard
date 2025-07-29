@@ -185,12 +185,13 @@ export function ReminderDetailModal({ open, onOpenChange, reminder, onSave, onDe
                   {formData.date ? new Date(formData.date).toLocaleDateString() : "Select date"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600">
+              <PopoverContent className="w-auto p-0 bg-slate-700 border-slate-600">
                 <Calendar
                   mode="single"
                   selected={new Date(formData.date)}
                   onSelect={(date) => setFormData({...formData, date: date || new Date()})}
                   initialFocus
+                  className="text-white"
                 />
               </PopoverContent>
             </Popover>

@@ -125,12 +125,13 @@ export function CreateObjectiveModal({ open, onOpenChange, onSave }: CreateObjec
                   {formData.deadline ? formData.deadline.toLocaleDateString() : "Select mission deadline"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
+              <PopoverContent className="w-auto p-0 bg-slate-700 border-slate-600">
                 <Calendar
                   mode="single"
                   selected={formData.deadline}
                   onSelect={(date) => setFormData({...formData, deadline: date})}
                   initialFocus
+                  className="text-white"
                 />
               </PopoverContent>
             </Popover>

@@ -123,26 +123,26 @@ export function CreateReminderModal({ open, onOpenChange, onSave }: CreateRemind
               <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-600">
-                <SelectItem value="5">
+              <SelectContent className="bg-slate-700 border-slate-600 text-white">
+                <SelectItem value="5" className="text-white hover:bg-slate-600 focus:bg-slate-600">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-red-400" />
                     🚨 5 minutes - Immediate
                   </div>
                 </SelectItem>
-                <SelectItem value="15">
+                <SelectItem value="15" className="text-white hover:bg-slate-600 focus:bg-slate-600">
                   <div className="flex items-center gap-2">
                     <Zap className="w-4 h-4 text-orange-400" />
                     ⚡ 15 minutes - Urgent
                   </div>
                 </SelectItem>
-                <SelectItem value="60">
+                <SelectItem value="60" className="text-white hover:bg-slate-600 focus:bg-slate-600">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-yellow-400" />
                     📋 1 hour - Standard
                   </div>
                 </SelectItem>
-                <SelectItem value="1440">
+                <SelectItem value="1440" className="text-white hover:bg-slate-600 focus:bg-slate-600">
                   <div className="flex items-center gap-2">
                     <Bell className="w-4 h-4 text-green-400" />
                     🔔 1 day - Early Warning
@@ -165,12 +165,13 @@ export function CreateReminderModal({ open, onOpenChange, onSave }: CreateRemind
                   {formData.date ? formData.date.toLocaleDateString() : "Select reminder time"}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
+              <PopoverContent className="w-auto p-0 bg-slate-700 border-slate-600">
                 <Calendar
                   mode="single"
                   selected={formData.date}
                   onSelect={(date) => setFormData({...formData, date: date})}
                   initialFocus
+                  className="text-white"
                 />
               </PopoverContent>
             </Popover>
