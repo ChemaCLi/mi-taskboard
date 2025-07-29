@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
-import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
+import { Progress } from './ui/progress';
 import { Separator } from './ui/separator';
-import { Play, Pause, Settings, Plus, Target, Calendar, Clock, BookOpen, CheckSquare, Square, ArrowRight } from 'lucide-react';
+import { Play, Pause, Settings, Plus, Target, Calendar, Clock, BookOpen, CheckSquare, Square, ArrowRight, LogOut, User, Shield } from 'lucide-react';
 import { ObjectivesCard } from './ObjectivesCard';
 import { BacklogCard } from './BacklogCard';
 import { NotesCard } from './NotesCard';
@@ -20,6 +20,7 @@ import { StartDayModal } from './StartDayModal';
 import { EndDayModal } from './EndDayModal';
 import { TaskProvider } from './DragDropContext';
 import { ObjectiveProvider, useObjectiveContext } from './ObjectiveContext';
+import { useAuth } from './AuthContext';
 
 function MainApp() {
   const [dayStarted, setDayStarted] = useState(false);
@@ -35,6 +36,7 @@ function MainApp() {
   });
 
   const { getObjectiveStats } = useObjectiveContext();
+  const { user, logout } = useAuth();
   const objectiveStats = getObjectiveStats();
 
   // Mock work schedule
@@ -84,7 +86,18 @@ function MainApp() {
             </Badge>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {/* User Badge */}
+            {user && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-slate-800/70 border border-cyan-400/30 rounded-lg backdrop-blur">
+                <Shield className="w-4 h-4 text-green-400" />
+                <Badge variant="outline" className="text-cyan-400 border-cyan-400/50">
+                  <User className="w-3 h-3 mr-1" />
+                  {user.username}
+                </Badge>
+              </div>
+            )}
+            
             {!dayStarted && (
               <Button 
                 onClick={() => setShowStartDay(true)}
@@ -110,6 +123,18 @@ function MainApp() {
             >
               <Settings className="w-4 h-4" />
             </Button>
+            
+            {/* Logout Button */}
+            {user && (
+              <Button
+                variant="outline"
+                onClick={logout}
+                className="border-red-400/50 text-red-400 hover:bg-red-400/10 hover:text-red-300"
+                title="Disconnect Neural Link"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </div>
 
