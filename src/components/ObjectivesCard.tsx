@@ -1,27 +1,27 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Plus, Target, Clock, Bell, Star, X, Hand, Snowflake, Pause } from 'lucide-react';
-import { CreateObjectiveModal } from './CreateObjectiveModal';
-import { ObjectiveDetailModal } from './ObjectiveDetailModal';
-import { ReminderDetailModal } from './ReminderDetailModal';
-import { useObjectiveContext } from './ObjectiveContext';
+import { Plus, Target, Clock, Bell, Star, X, Hand, Snowflake, Pause, Loader2, AlertCircle } from 'lucide-react';
+import { useMissionData } from './MissionDataContext';
+import { useModals } from './ModalsContext';
 
 export function ObjectivesCard() {
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showObjectiveModal, setShowObjectiveModal] = useState(false);
-  const [showReminderModal, setShowReminderModal] = useState(false);
-  const [selectedObjective, setSelectedObjective] = useState(null);
-  const [selectedReminder, setSelectedReminder] = useState(null);
+  const missionData = useMissionData();
+  const modals = useModals();
   
-  const { objectives, reminders, updateObjective, deleteObjective, updateReminder, deleteReminder } = useObjectiveContext();
+  // Get data from mission data system
+  const objectives = missionData.objectives.get();
+  const reminders = missionData.reminders.get();
 
   const getDeadlineStatus = (objective: any) => {
     const now = new Date();
-    const totalTime = objective.deadline.getTime() - objective.createdAt.getTime();
-    const elapsed = now.getTime() - objective.createdAt.getTime();
-    const remaining = objective.deadline.getTime() - now.getTime();
+    const deadline = new Date(objective.deadline);
+    const createdAt = new Date(objective.createdAt);
+    
+    const totalTime = deadline.getTime() - createdAt.getTime();
+    const elapsed = now.getTime() - createdAt.getTime();
+    const remaining = deadline.getTime() - now.getTime();
     const progress = elapsed / totalTime;
     
     const daysRemaining = Math.ceil(remaining / (1000 * 60 * 60 * 24));
@@ -59,64 +59,116 @@ export function ObjectivesCard() {
     }
   };
 
-  const nearReminders = reminders.filter(r => r.isNear);
-  const futureReminders = reminders.filter(r => !r.isNear);
+  // Mock reminder filtering logic (should be moved to API when reminders are implemented)
+  const nearReminders = reminders.filter((r: any) => {
+    const reminderDate = new Date(r.date || r.scheduledAt || new Date());
+    const now = new Date();
+    const diffDays = (reminderDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+    return diffDays <= 7 && diffDays >= 0; // Next 7 days
+  });
+  
+  const futureReminders = reminders.filter((r: any) => {
+    const reminderDate = new Date(r.date || r.scheduledAt || new Date());
+    const now = new Date();
+    const diffDays = (reminderDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+    return diffDays > 7;
+  });
 
-  const handleObjectiveClick = (objective: any) => {
-    setSelectedObjective(objective);
-    setShowObjectiveModal(true);
+  const handleObjectiveTitleClick = (objective: any, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    console.log('ObjectivesCard: Opening objective detail modal for:', objective.id);
+    modals.objectives.showDetail(objective.id, objective);
   };
 
   const handleReminderClick = (reminder: any) => {
-    setSelectedReminder(reminder);
-    setShowReminderModal(true);
+    console.log('ObjectivesCard: Opening reminder detail modal for:', reminder.id);
+    modals.reminders.showDetail(reminder.id, reminder);
   };
 
-  const handleObjectiveSave = (updatedObjective: any) => {
-    updateObjective(updatedObjective);
-  };
-
-  const handleObjectiveDelete = (objectiveId: string) => {
-    deleteObjective(objectiveId);
-  };
-
-  const handleReminderSave = (updatedReminder: any) => {
-    updateReminder(updatedReminder);
-  };
-
-  const handleReminderDelete = (reminderId: string) => {
-    deleteReminder(reminderId);
-  };
-
-  return (
-    <>
+  // Show loading state
+  if (missionData.objectives.isLoading && !missionData.objectives.isInitialized) {
+    return (
       <Card className="bg-slate-800/50 border-cyan-400/30">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center justify-between text-cyan-400">
             <div className="flex items-center gap-2">
               <Target className="w-5 h-5" />
-              Sprint Objectives
+              Strategic Objectives
             </div>
-            <Button 
-              size="sm" 
-              onClick={() => setShowCreateModal(true)}
-              className="bg-cyan-600 hover:bg-cyan-700 text-white"
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Objectives */}
-          <div className="space-y-3">
-            {objectives.map((objective) => {
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="flex items-center gap-2 text-cyan-400">
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>Loading objectives...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error state
+  if (missionData.objectives.error) {
+    return (
+      <Card className="bg-slate-800/50 border-red-400/30">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between text-red-400">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5" />
+              Strategic Objectives
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="flex items-center gap-2 text-red-400">
+            <AlertCircle className="w-5 h-5" />
+            <span>Error loading objectives: {missionData.objectives.error}</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="bg-slate-800/50 border-cyan-400/30">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center justify-between text-cyan-400">
+          <div className="flex items-center gap-2">
+            <Target className="w-5 h-5" />
+            Strategic Objectives
+          </div>
+          <Button 
+            size="sm" 
+            onClick={() => modals.objectives.openNew()}
+            className="bg-cyan-600 hover:bg-cyan-700 text-white"
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Objectives */}
+        <div className="space-y-3">
+          {objectives.length === 0 ? (
+            <div className="text-center py-8 text-slate-400">
+              <Target className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p>No strategic objectives defined</p>
+              <p className="text-sm">Create your first objective to get started</p>
+            </div>
+          ) : (
+            objectives.map((objective) => {
               const { color, daysRemaining, status } = getDeadlineStatus(objective);
               return (
-                <div key={objective.id} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600 hover:border-cyan-400/50 transition-colors cursor-pointer" onClick={() => handleObjectiveClick(objective)}>
+                <div key={objective.id} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600 hover:border-cyan-400/50 transition-colors">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
                       {getStatusIcon(objective.status)}
-                      <h4 className="text-white font-medium">{objective.title}</h4>
+                      <h4 
+                        className="text-white font-medium cursor-pointer hover:text-cyan-400 transition-colors"
+                        onClick={(e) => handleObjectiveTitleClick(objective, e)}
+                      >
+                        {objective.title}
+                      </h4>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className={getStatusColor(objective.status)}>
@@ -144,13 +196,14 @@ export function ObjectivesCard() {
                       </Badge>
                     )}
                     <span className="text-xs text-slate-500 ml-auto">
-                      Due: {objective.deadline.toLocaleDateString()}
+                      Due: {new Date(objective.deadline).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
               );
-            })}
-          </div>
+            })
+          )}
+        </div>
 
           {/* Reminders */}
           <div className="border-t border-slate-600 pt-4">
@@ -168,7 +221,7 @@ export function ObjectivesCard() {
                       <Clock className="w-3 h-3 text-yellow-400" />
                       <span className="text-white text-sm">{reminder.text}</span>
                       <span className="text-xs text-yellow-400 ml-auto">
-                        {reminder.date.toLocaleDateString()}
+                        {new Date((reminder as any).date || (reminder as any).scheduledAt || new Date()).toLocaleDateString()}
                       </span>
                     </div>
                   ))}
@@ -185,37 +238,15 @@ export function ObjectivesCard() {
                       <Clock className="w-3 h-3 text-slate-400" />
                       <span className="text-slate-300 text-sm">{reminder.text}</span>
                       <span className="text-xs text-slate-500 ml-auto">
-                        {reminder.date.toLocaleDateString()}
+                        {new Date((reminder as any).date || (reminder as any).scheduledAt || new Date()).toLocaleDateString()}
                       </span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <CreateObjectiveModal 
-        open={showCreateModal} 
-        onOpenChange={setShowCreateModal} 
-      />
-
-      <ObjectiveDetailModal
-        open={showObjectiveModal}
-        onOpenChange={setShowObjectiveModal}
-        objective={selectedObjective}
-        onSave={handleObjectiveSave}
-        onDelete={handleObjectiveDelete}
-      />
-
-      <ReminderDetailModal
-        open={showReminderModal}
-        onOpenChange={setShowReminderModal}
-        reminder={selectedReminder}
-        onSave={handleReminderSave}
-        onDelete={handleReminderDelete}
-      />
-    </>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

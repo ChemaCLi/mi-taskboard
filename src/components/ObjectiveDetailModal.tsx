@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -8,15 +8,16 @@ import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { CalendarIcon, Target, Users, Save, Trash2, Clock, Star, X, Hand, Snowflake, Pause } from 'lucide-react';
+import { CalendarIcon, Target, Users, Save, Trash2, Clock, Star, X, Hand, Snowflake, Pause, Loader2 } from 'lucide-react';
+import { useMissionData } from './MissionDataContext';
 
 interface Objective {
   id: string;
   title: string;
   description?: string;
-  deadline: Date;
+  deadline: Date | string;
   status: 'ACTIVE' | 'ACHIEVED' | 'ABORTED' | 'INTERRUPTED' | 'ARCHIVED' | 'PAUSED';
-  priority: 'ASAP' | 'HIGH' | 'MEDIUM' | 'LOW';
+  priority?: 'ASAP' | 'HIGH' | 'MEDIUM' | 'LOW';
   details?: string;
   peopleHelp?: string[];
   timeNeeded?: number;
@@ -24,7 +25,7 @@ interface Objective {
   existing?: string;
   complexities?: string;
   resources?: any;
-  createdAt?: Date;
+  createdAt?: Date | string;
 }
 
 interface ObjectiveDetailModalProps {
@@ -36,6 +37,7 @@ interface ObjectiveDetailModalProps {
 }
 
 export function ObjectiveDetailModal({ open, onOpenChange, objective, onSave, onDelete }: ObjectiveDetailModalProps) {
+  const missionData = useMissionData();
   const [formData, setFormData] = useState<Objective>(() => 
     objective || {
       id: '',
@@ -54,26 +56,76 @@ export function ObjectiveDetailModal({ open, onOpenChange, objective, onSave, on
   );
 
   const [newPerson, setNewPerson] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (objective) {
-      setFormData(objective);
+      // Convert string dates to Date objects if needed
+      const updatedObjective = {
+        ...objective,
+        deadline: objective.deadline ? (typeof objective.deadline === 'string' ? new Date(objective.deadline) : objective.deadline) : new Date(),
+        createdAt: objective.createdAt ? (typeof objective.createdAt === 'string' ? new Date(objective.createdAt) : objective.createdAt) : undefined,
+      };
+      setFormData(updatedObjective);
     }
+    setError(null);
   }, [objective]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (onSave) {
-      onSave(formData);
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      console.log('ObjectiveDetailModal: Submitting objective data', formData);
+      
+      // Convert Date objects back to ISO strings for API
+      const objectiveForSave = {
+        ...formData,
+        deadline: formData.deadline instanceof Date ? formData.deadline.toISOString() : formData.deadline,
+        createdAt: formData.createdAt instanceof Date ? formData.createdAt.toISOString() : formData.createdAt,
+      };
+      
+      console.log('ObjectiveDetailModal: Objective data for save', objectiveForSave);
+
+      if (onSave) {
+        await onSave(objectiveForSave);
+      } else {
+        console.warn('ObjectiveDetailModal: No onSave handler provided');
+      }
+      
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error saving objective:', error);
+      setError(error instanceof Error ? error.message : 'An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
     }
-    onOpenChange(false);
   };
 
-  const handleDelete = () => {
-    if (onDelete && objective) {
-      onDelete(objective.id);
+  const handleDelete = async () => {
+    if (!objective) return;
+    
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      console.log('ObjectiveDetailModal: Deleting objective', objective.id);
+      
+      if (onDelete) {
+        await onDelete(objective.id);
+      } else {
+        console.warn('ObjectiveDetailModal: No onDelete handler provided');
+      }
+      
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error deleting objective:', error);
+      setError(error instanceof Error ? error.message : 'An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
     }
-    onOpenChange(false);
   };
 
   const addPerson = () => {
@@ -128,14 +180,17 @@ export function ObjectiveDetailModal({ open, onOpenChange, objective, onSave, on
   };
 
   const getDeadlineStatus = (objective: Objective) => {
-    if (!objective.createdAt) return { color: 'gray', status: 'Unknown' };
+    if (!objective.createdAt) return { color: 'gray', status: 'Unknown', daysRemaining: 0 };
     
     const now = new Date();
-    const totalTime = objective.deadline.getTime() - objective.createdAt.getTime();
-    const elapsed = now.getTime() - objective.createdAt.getTime();
+    const deadline = new Date(objective.deadline);
+    const createdAt = new Date(objective.createdAt);
+    
+    const totalTime = deadline.getTime() - createdAt.getTime();
+    const elapsed = now.getTime() - createdAt.getTime();
     const progress = elapsed / totalTime;
     
-    const daysRemaining = Math.ceil((objective.deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const daysRemaining = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     
     if (progress <= 1/3) {
       return { color: 'green', status: 'On Track', daysRemaining };
@@ -154,9 +209,9 @@ export function ObjectiveDetailModal({ open, onOpenChange, objective, onSave, on
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-slate-900 border-slate-600 max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-white flex items-center gap-2">
+          <DialogTitle className="text-cyan-400 flex items-center gap-2">
             <Target className="w-5 h-5 text-cyan-400" />
-            {objective ? 'Edit Objective' : 'Objective Details'}
+            🎯 {objective ? 'Strategic Objective Control' : 'Objective Details'}
             {formData.priority && (
               <Badge className={getPriorityColor(formData.priority)}>
                 {formData.priority}
@@ -178,52 +233,60 @@ export function ObjectiveDetailModal({ open, onOpenChange, objective, onSave, on
           </DialogTitle>
         </DialogHeader>
         
+        {error && (
+          <div className="p-3 bg-red-900/50 border border-red-500/50 rounded-lg text-red-200">
+            {error}
+          </div>
+        )}
+        
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-4">
               <div>
-                <Label htmlFor="title" className="text-white">Objective Title</Label>
+                <Label htmlFor="title" className="text-cyan-400">Mission Objective</Label>
                 <Input
                   id="title"
                   value={formData.title}
                   onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  placeholder="Enter objective title..."
-                  className="bg-slate-800 border-slate-600 text-white"
+                  placeholder="Define strategic objective..."
+                  className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
+                  disabled={isLoading}
                   required
                 />
               </div>
               
               <div>
-                <Label htmlFor="description" className="text-white">Description</Label>
+                <Label htmlFor="description" className="text-cyan-400">Mission Briefing</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  placeholder="Objective description..."
-                  className="bg-slate-800 border-slate-600 text-white"
+                  placeholder="Detailed mission briefing and success criteria..."
+                  className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
+                  disabled={isLoading}
                   rows={3}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="priority" className="text-white">Priority</Label>
-                  <Select value={formData.priority} onValueChange={(value) => setFormData({...formData, priority: value as any})}>
+                  <Label htmlFor="priority" className="text-cyan-400">Priority Level</Label>
+                  <Select value={formData.priority} onValueChange={(value) => setFormData({...formData, priority: value as any})} disabled={isLoading}>
                     <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="ASAP">ASAP</SelectItem>
-                      <SelectItem value="HIGH">High</SelectItem>
-                      <SelectItem value="MEDIUM">Medium</SelectItem>
-                      <SelectItem value="LOW">Low</SelectItem>
+                      <SelectItem value="ASAP">🔥 CRITICAL - ASAP</SelectItem>
+                      <SelectItem value="HIGH">⚡ HIGH - Urgent</SelectItem>
+                      <SelectItem value="MEDIUM">📋 MEDIUM - Standard</SelectItem>
+                      <SelectItem value="LOW">🌱 LOW - When Possible</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <Label htmlFor="status" className="text-white">Status</Label>
-                  <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value as any})}>
+                  <Label htmlFor="status" className="text-cyan-400">Mission Status</Label>
+                  <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value as any})} disabled={isLoading}>
                     <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
                       <SelectValue />
                     </SelectTrigger>
@@ -264,33 +327,35 @@ export function ObjectiveDetailModal({ open, onOpenChange, objective, onSave, on
               </div>
 
               <div>
-                <Label htmlFor="timeNeeded" className="text-white">Estimated Time (hours)</Label>
+                <Label htmlFor="timeNeeded" className="text-cyan-400">Estimated Time (hours)</Label>
                 <Input
                   id="timeNeeded"
                   type="number"
                   value={formData.timeNeeded}
                   onChange={(e) => setFormData({...formData, timeNeeded: Number(e.target.value)})}
                   placeholder="0"
-                  className="bg-slate-800 border-slate-600 text-white"
+                  className="bg-slate-800 border-slate-600 text-white placeholder:text-slate-500"
+                  disabled={isLoading}
                 />
               </div>
 
               <div>
-                <Label htmlFor="deadline" className="text-white">Deadline</Label>
+                <Label htmlFor="deadline" className="text-cyan-400">Mission Deadline</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       className="w-full justify-start bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
+                      disabled={isLoading}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.deadline ? formData.deadline.toLocaleDateString() : "Select date"}
+                      {formData.deadline ? new Date(formData.deadline).toLocaleDateString() : "Select mission deadline"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600">
                     <Calendar
                       mode="single"
-                      selected={formData.deadline}
+                      selected={formData.deadline instanceof Date ? formData.deadline : new Date(formData.deadline)}
                       onSelect={(date) => setFormData({...formData, deadline: date || new Date()})}
                       initialFocus
                     />
@@ -376,7 +441,7 @@ export function ObjectiveDetailModal({ open, onOpenChange, objective, onSave, on
             />
           </div>
 
-          <div className="flex justify-between">
+                      <div className="flex justify-between">
             <div>
               {objective && (
                 <Button
@@ -384,9 +449,10 @@ export function ObjectiveDetailModal({ open, onOpenChange, objective, onSave, on
                   variant="destructive"
                   onClick={handleDelete}
                   className="bg-red-600 hover:bg-red-700"
+                  disabled={isLoading}
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Objective
+                  🗑️ Abort Mission
                 </Button>
               )}
             </div>
@@ -396,15 +462,26 @@ export function ObjectiveDetailModal({ open, onOpenChange, objective, onSave, on
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 className="border-slate-600 text-white hover:bg-slate-700"
+                disabled={isLoading}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 className="bg-cyan-600 hover:bg-cyan-700 text-white"
+                disabled={isLoading}
               >
-                <Save className="w-4 h-4 mr-2" />
-                Save Objective
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    💾 Update Objective
+                  </>
+                )}
               </Button>
             </div>
           </div>

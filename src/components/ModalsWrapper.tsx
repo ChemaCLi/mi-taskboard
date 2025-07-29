@@ -80,17 +80,41 @@ export function ModalsWrapper() {
 
   // Objective modal handlers
   const handleObjectiveSave = async (objectiveData: any) => {
-    if (modals.objectives.mode === 'create') {
-      await missionData.objectives.create(objectiveData);
-    } else if (modals.objectives.mode === 'edit' && modals.objectives.objectiveId) {
-      await missionData.objectives.update(modals.objectives.objectiveId, objectiveData);
+    try {
+      if (modals.objectives.mode === 'create') {
+        console.log('Creating new objective:', objectiveData);
+        await missionData.objectives.create(objectiveData);
+      } else if ((modals.objectives.mode === 'edit' || modals.objectives.mode === 'detail') && modals.objectives.objectiveId) {
+        console.log('Updating objective:', modals.objectives.objectiveId, objectiveData);
+        // Ensure we have the objective ID in the data
+        const updateData = {
+          ...objectiveData,
+          id: modals.objectives.objectiveId
+        };
+        await missionData.objectives.update(modals.objectives.objectiveId, updateData);
+      } else {
+        console.error('Invalid objective save operation:', {
+          mode: modals.objectives.mode,
+          objectiveId: modals.objectives.objectiveId,
+          hasObjectiveData: !!objectiveData
+        });
+      }
+      modals.objectives.close();
+    } catch (error) {
+      console.error('Error saving objective:', error);
+      // Don't close modal on error so user can retry
     }
-    modals.objectives.close();
   };
 
   const handleObjectiveDelete = async (objectiveId: string) => {
-    await missionData.objectives.delete(objectiveId);
-    modals.objectives.close();
+    try {
+      console.log('Deleting objective:', objectiveId);
+      await missionData.objectives.delete(objectiveId);
+      modals.objectives.close();
+    } catch (error) {
+      console.error('Error deleting objective:', error);
+      // Don't close modal on error so user can retry
+    }
   };
 
   // Meeting modal handlers
@@ -148,6 +172,7 @@ export function ModalsWrapper() {
         <CreateObjectiveModal
           open={modals.objectives.isOpen}
           onOpenChange={(open) => !open && modals.objectives.close()}
+          onSave={handleObjectiveSave} // Pass centralized save handler
         />
       )}
 
