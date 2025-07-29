@@ -6,7 +6,7 @@ import { Separator } from './ui/separator';
 import { Plus, Archive, Calendar, AlertTriangle } from 'lucide-react';
 import { CreateTaskModal } from './CreateTaskModal';
 import { TaskDetailModal } from './TaskDetailModal';
-import { useTaskContext } from './DragDropContext';
+import { useMissionData } from './MissionDataContext';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -17,10 +17,10 @@ interface TaskItemProps {
     title: string;
     description?: string;
     priority: 'ASAP' | 'HIGH' | 'MEDIUM' | 'LOW';
-    limitDate?: Date;
-    estimatedTime?: number;
-    complexity?: 'Simple' | 'Moderate' | 'Complex';
-    tags?: string[];
+    limitDate?: string;
+    timeNeeded?: number;
+    complexities?: string;
+    // Add other fields that might be used for display
   };
   onTaskClick: (task: any) => void;
 }
@@ -63,9 +63,23 @@ function TaskItem({ task, onTaskClick }: TaskItemProps) {
   const isUrgent = (task: any) => {
     if (!task.limitDate) return false;
     const today = new Date();
-    const daysDiff = Math.ceil((task.limitDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const limitDate = new Date(task.limitDate);
+    const daysDiff = Math.ceil((limitDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     return daysDiff <= 2;
   };
+
+  // Parse complexity from complexities field if available
+  const getComplexityFromTask = (task: any) => {
+    if (task.complexities) {
+      const complexityText = task.complexities.toLowerCase();
+      if (complexityText.includes('simple')) return 'Simple';
+      if (complexityText.includes('complex')) return 'Complex';
+      return 'Moderate';
+    }
+    return null;
+  };
+
+  const complexity = getComplexityFromTask(task);
 
   return (
     <div
@@ -99,33 +113,23 @@ function TaskItem({ task, onTaskClick }: TaskItemProps) {
       
       <div className="flex items-center justify-between text-xs">
         <div className="flex items-center gap-2">
-          {task.complexity && (
-            <Badge variant="outline" className={getComplexityColor(task.complexity)}>
-              {task.complexity}
+          {complexity && (
+            <Badge variant="outline" className={getComplexityColor(complexity)}>
+              {complexity}
             </Badge>
           )}
-          {task.estimatedTime && (
-            <span className="text-slate-500">{task.estimatedTime}h</span>
+          {task.timeNeeded && (
+            <span className="text-slate-500">{task.timeNeeded}h</span>
           )}
         </div>
         
         {task.limitDate && (
           <div className="flex items-center gap-1 text-slate-500">
             <Calendar className="w-3 h-3" />
-            {task.limitDate.toLocaleDateString()}
+            {new Date(task.limitDate).toLocaleDateString()}
           </div>
         )}
       </div>
-      
-      {task.tags && task.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-2">
-          {task.tags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="text-xs">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -134,25 +138,27 @@ export function BacklogCard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
-  const { tasks, updateTask, deleteTask } = useTaskContext();
+  const missionData = useMissionData();
 
   const { setNodeRef } = useDroppable({
     id: 'BACKLOG',
   });
 
-  const backlogTasks = tasks.filter(task => task.status === 'BACKLOG');
+  // Get tasks and filter for backlog status
+  const allTasks = missionData.tasks.get();
+  const backlogTasks = allTasks.filter(task => task.status === 'BACKLOG');
 
   const handleTaskClick = (task: any) => {
     setSelectedTask(task);
     setShowDetailModal(true);
   };
 
-  const handleTaskSave = (updatedTask: any) => {
-    updateTask(updatedTask);
+  const handleTaskSave = async (updatedTask: any) => {
+    await missionData.tasks.update(updatedTask.id, updatedTask);
   };
 
-  const handleTaskDelete = (taskId: string) => {
-    deleteTask(taskId);
+  const handleTaskDelete = async (taskId: string) => {
+    await missionData.tasks.delete(taskId);
   };
 
   // Sort tasks: ASAP first, then urgent (within 2 days), then by priority
@@ -163,7 +169,8 @@ export function BacklogCard() {
     const isUrgent = (task: any) => {
       if (!task.limitDate) return false;
       const today = new Date();
-      const daysDiff = Math.ceil((task.limitDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const limitDate = new Date(task.limitDate);
+      const daysDiff = Math.ceil((limitDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
       return daysDiff <= 2;
     };
     
@@ -176,6 +183,68 @@ export function BacklogCard() {
     const priorityOrder = { 'ASAP': 0, 'HIGH': 1, 'MEDIUM': 2, 'LOW': 3 };
     return priorityOrder[a.priority] - priorityOrder[b.priority];
   });
+
+  // Show loading state
+  if (missionData.tasks.isLoading && !missionData.tasks.isInitialized) {
+    return (
+      <Card className="bg-slate-800/50 border-purple-400/30">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between text-purple-400">
+            <div className="flex items-center gap-2">
+              <Archive className="w-5 h-5" />
+              Mission Backlog
+              <Badge variant="outline" className="border-purple-400 text-purple-400">
+                ...
+              </Badge>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 max-h-96 overflow-y-auto min-h-[200px] p-2 rounded-lg bg-slate-800/20 border-2 border-dashed border-purple-400/30">
+            <div className="text-center text-slate-500 py-8">
+              <Archive className="w-8 h-8 mx-auto mb-2 opacity-50 animate-pulse" />
+              <p>Loading tasks...</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error state
+  if (missionData.tasks.error) {
+    return (
+      <Card className="bg-slate-800/50 border-red-400/30">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between text-red-400">
+            <div className="flex items-center gap-2">
+              <Archive className="w-5 h-5" />
+              Mission Backlog
+              <Badge variant="outline" className="border-red-400 text-red-400">
+                Error
+              </Badge>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 max-h-96 overflow-y-auto min-h-[200px] p-2 rounded-lg bg-slate-800/20 border-2 border-dashed border-red-400/30">
+            <div className="text-center text-red-400 py-8">
+              <AlertTriangle className="w-8 h-8 mx-auto mb-2" />
+              <p>Error loading tasks</p>
+              <p className="text-xs text-red-300 mt-1">{missionData.tasks.error}</p>
+              <Button 
+                size="sm" 
+                onClick={() => missionData.tasks.refresh()}
+                className="mt-2 bg-red-600 hover:bg-red-700"
+              >
+                Retry
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <>
