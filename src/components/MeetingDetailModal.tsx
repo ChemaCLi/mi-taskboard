@@ -394,7 +394,7 @@ export function MeetingDetailModal({ open, onOpenChange, meeting, onSave, onDele
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-slate-600 text-white hover:bg-slate-700"
+                className="bg-slate-600 border-slate-500 text-white hover:bg-slate-500 hover:border-slate-400"
                 disabled={isLoading}
               >
                 Abort

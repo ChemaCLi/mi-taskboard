@@ -308,7 +308,7 @@ export function CreateTaskModal({ open, onOpenChange, onSave }: CreateTaskModalP
                 type="button" 
                 onClick={addTag} 
                 size="sm" 
-                className="bg-purple-600 hover:bg-purple-700"
+                className="bg-slate-600 hover:bg-slate-500 text-white border-slate-500"
                 disabled={isCreating}
               >
                 <Plus className="w-4 h-4" />
@@ -316,7 +316,7 @@ export function CreateTaskModal({ open, onOpenChange, onSave }: CreateTaskModalP
             </div>
             <div className="flex flex-wrap gap-1">
               {tags.map((tag) => (
-                <Badge key={tag} variant="secondary" className="flex items-center gap-1">
+                <Badge key={tag} variant="secondary" className="flex items-center gap-1 bg-slate-600 text-white hover:bg-slate-500">
                   {tag}
                   <X 
                     className="w-3 h-3 cursor-pointer" 
@@ -333,6 +333,7 @@ export function CreateTaskModal({ open, onOpenChange, onSave }: CreateTaskModalP
               variant="outline" 
               onClick={handleCancel}
               disabled={isCreating}
+              className="bg-slate-600 border-slate-500 text-white hover:bg-slate-500 hover:border-slate-400"
             >
               Cancel Mission
             </Button>

@@ -383,13 +383,13 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
                 className="bg-slate-800 border-slate-600 text-white"
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addPerson())}
               />
-              <Button type="button" onClick={addPerson} variant="outline" className="border-slate-600">
+              <Button type="button" onClick={addPerson} variant="outline" className="bg-slate-600 border-slate-500 text-white hover:bg-slate-500 hover:border-slate-400">
                 Add
               </Button>
             </div>
             <div className="flex flex-wrap gap-1">
               {formData.peopleHelp?.map((person) => (
-                <Badge key={person} variant="secondary" className="cursor-pointer" onClick={() => removePerson(person)}>
+                <Badge key={person} variant="secondary" className="cursor-pointer bg-slate-600 text-white hover:bg-slate-500" onClick={() => removePerson(person)}>
                   <Users className="w-3 h-3 mr-1" />
                   {person} ×
                 </Badge>
@@ -407,13 +407,13 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
                 className="bg-slate-800 border-slate-600 text-white"
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
               />
-              <Button type="button" onClick={addTag} variant="outline" className="border-slate-600">
+              <Button type="button" onClick={addTag} variant="outline" className="bg-slate-600 border-slate-500 text-white hover:bg-slate-500 hover:border-slate-400">
                 Add
               </Button>
             </div>
             <div className="flex flex-wrap gap-1">
               {formData.tags?.map((tag) => (
-                <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => removeTag(tag)}>
+                <Badge key={tag} variant="secondary" className="cursor-pointer bg-slate-600 text-white hover:bg-slate-500" onClick={() => removeTag(tag)}>
                   {tag} ×
                 </Badge>
               ))}
@@ -451,7 +451,7 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="border-slate-600 text-white hover:bg-slate-700"
+                className="bg-slate-600 border-slate-500 text-white hover:bg-slate-500 hover:border-slate-400"
               >
                 Cancel
               </Button>
