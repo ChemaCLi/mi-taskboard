@@ -4,9 +4,8 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { Plus, Archive, Calendar, AlertTriangle } from 'lucide-react';
-import { CreateTaskModal } from './CreateTaskModal';
-import { TaskDetailModal } from './TaskDetailModal';
 import { useMissionData } from './MissionDataContext';
+import { useModals } from './ModalsContext';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -88,15 +87,17 @@ function TaskItem({ task, onTaskClick }: TaskItemProps) {
       {...attributes}
       {...listeners}
       className="p-3 bg-slate-700/50 rounded-lg border border-slate-600 hover:border-purple-400/50 transition-colors cursor-grab active:cursor-grabbing"
-      onClick={(e) => {
-        // Only trigger click if not dragging
-        if (!isDragging && e.target === e.currentTarget) {
-          onTaskClick(task);
-        }
-      }}
     >
       <div className="flex items-start justify-between mb-2">
-        <h4 className="text-white font-medium flex-1">{task.title}</h4>
+        <h4 
+          className="text-white font-medium flex-1 cursor-pointer hover:text-purple-400 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent drag/drop when clicking title
+            onTaskClick(task);
+          }}
+        >
+          {task.title}
+        </h4>
         <div className="flex items-center gap-2 ml-2">
           {isUrgent(task) && (
             <AlertTriangle className="w-4 h-4 text-red-400" />
@@ -135,10 +136,8 @@ function TaskItem({ task, onTaskClick }: TaskItemProps) {
 }
 
 export function BacklogCard() {
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(null);
   const missionData = useMissionData();
+  const modals = useModals();
 
   const { setNodeRef } = useDroppable({
     id: 'BACKLOG',
@@ -149,16 +148,8 @@ export function BacklogCard() {
   const backlogTasks = allTasks.filter(task => task.status === 'BACKLOG');
 
   const handleTaskClick = (task: any) => {
-    setSelectedTask(task);
-    setShowDetailModal(true);
-  };
-
-  const handleTaskSave = async (updatedTask: any) => {
-    await missionData.tasks.update(updatedTask.id, updatedTask);
-  };
-
-  const handleTaskDelete = async (taskId: string) => {
-    await missionData.tasks.delete(taskId);
+    // Use the new modal system to show task details
+    modals.tasks.showDetail(task.id, task);
   };
 
   // Sort tasks: ASAP first, then urgent (within 2 days), then by priority
@@ -247,62 +238,47 @@ export function BacklogCard() {
   }
 
   return (
-    <>
-      <Card className="bg-slate-800/50 border-purple-400/30">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center justify-between text-purple-400">
-            <div className="flex items-center gap-2">
-              <Archive className="w-5 h-5" />
-              Mission Backlog
-              <Badge variant="outline" className="border-purple-400 text-purple-400">
-                {sortedTasks.length}
-              </Badge>
-            </div>
-            <Button 
-              size="sm" 
-              onClick={() => setShowCreateModal(true)}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div
-            ref={setNodeRef}
-            className="space-y-3 max-h-96 overflow-y-auto min-h-[200px] p-2 rounded-lg bg-slate-800/20 border-2 border-dashed border-purple-400/30"
-          >
-            {sortedTasks.map((task, index) => (
-              <div key={task.id}>
-                {index > 0 && sortedTasks[index-1].priority !== task.priority && (
-                  <Separator className="my-2 bg-slate-600" />
-                )}
-                <TaskItem task={task} onTaskClick={handleTaskClick} />
-              </div>
-            ))}
-            {sortedTasks.length === 0 && (
-              <div className="text-center text-slate-500 py-8">
-                <Archive className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>No tasks in backlog</p>
-                <p className="text-xs">Drop tasks here or create new ones</p>
-              </div>
-            )}
+    <Card className="bg-slate-800/50 border-purple-400/30">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center justify-between text-purple-400">
+          <div className="flex items-center gap-2">
+            <Archive className="w-5 h-5" />
+            Mission Backlog
+            <Badge variant="outline" className="border-purple-400 text-purple-400">
+              {sortedTasks.length}
+            </Badge>
           </div>
-        </CardContent>
-      </Card>
-
-      <CreateTaskModal 
-        open={showCreateModal} 
-        onOpenChange={setShowCreateModal} 
-      />
-
-      <TaskDetailModal
-        open={showDetailModal}
-        onOpenChange={setShowDetailModal}
-        task={selectedTask}
-        onSave={handleTaskSave}
-        onDelete={handleTaskDelete}
-      />
-    </>
+          <Button 
+            size="sm" 
+            onClick={() => modals.tasks.openNew()}
+            className="bg-purple-600 hover:bg-purple-700 text-white"
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div
+          ref={setNodeRef}
+          className="space-y-3 max-h-96 overflow-y-auto min-h-[200px] p-2 rounded-lg bg-slate-800/20 border-2 border-dashed border-purple-400/30"
+        >
+          {sortedTasks.map((task, index) => (
+            <div key={task.id}>
+              {index > 0 && sortedTasks[index-1].priority !== task.priority && (
+                <Separator className="my-2 bg-slate-600" />
+              )}
+              <TaskItem task={task} onTaskClick={handleTaskClick} />
+            </div>
+          ))}
+          {sortedTasks.length === 0 && (
+            <div className="text-center text-slate-500 py-8">
+              <Archive className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p>No tasks in backlog</p>
+              <p className="text-xs">Drop tasks here or create new ones</p>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

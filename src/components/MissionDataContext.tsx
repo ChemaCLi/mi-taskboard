@@ -246,15 +246,30 @@ export function MissionDataProvider({ children }: MissionDataProviderProps) {
 
     const update = async (id: string, updateData: Partial<T>): Promise<T | null> => {
       try {
+        console.log(`MissionData: Updating ${entityName} ${id} with data:`, updateData);
         const result = await makeRequest(`/api/${apiEndpoint}/${id}`, {
           method: 'PUT',
           body: JSON.stringify(updateData),
         });
 
+        console.log(`MissionData: ${entityName} update result:`, result);
+
         if (result.success) {
-          const updatedItem = result[entityName.slice(0, -1)];
-          setData(prev => prev.map(item => item.id === id ? updatedItem : item));
-          return updatedItem;
+          const itemKey = entityName.slice(0, -1); // Remove 's' from end
+          const updatedItem = result[itemKey];
+          console.log(`MissionData: Updated ${entityName} item:`, updatedItem);
+          
+          if (updatedItem) {
+            setData(prev => {
+              const newData = prev.map(item => item.id === id ? updatedItem : item);
+              console.log(`MissionData: Updated ${entityName} data:`, newData);
+              return newData;
+            });
+            return updatedItem;
+          } else {
+            console.error(`MissionData: No ${itemKey} in response:`, result);
+            throw new Error(`No ${itemKey} in response`);
+          }
         } else {
           throw new Error(result.error || 'Failed to update item');
         }

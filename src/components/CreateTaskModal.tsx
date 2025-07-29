@@ -14,9 +14,10 @@ import { useMissionData } from './MissionDataContext';
 interface CreateTaskModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSave?: (taskData: any) => Promise<void>;
 }
 
-export function CreateTaskModal({ open, onOpenChange }: CreateTaskModalProps) {
+export function CreateTaskModal({ open, onOpenChange, onSave }: CreateTaskModalProps) {
   const missionData = useMissionData();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,14 +64,20 @@ export function CreateTaskModal({ open, onOpenChange }: CreateTaskModalProps) {
 
       console.log('Creating task with data:', taskData);
 
-      const newTask = await missionData.tasks.create(taskData);
-      
-      if (newTask) {
-        console.log('Task created successfully:', newTask);
-        onOpenChange(false);
-        resetForm();
+      if (onSave) {
+        // Use the centralized save handler
+        await onSave(taskData);
       } else {
-        setError('Failed to create task. Please try again.');
+        // Fallback to direct API call
+        const newTask = await missionData.tasks.create(taskData);
+        
+        if (newTask) {
+          console.log('Task created successfully:', newTask);
+          onOpenChange(false);
+          resetForm();
+        } else {
+          setError('Failed to create task. Please try again.');
+        }
       }
     } catch (error) {
       console.error('Error creating task:', error);
@@ -112,6 +119,13 @@ export function CreateTaskModal({ open, onOpenChange }: CreateTaskModalProps) {
     onOpenChange(false);
     resetForm();
   };
+
+  // Reset form when modal opens
+  React.useEffect(() => {
+    if (open) {
+      resetForm();
+    }
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isCreating && onOpenChange(isOpen)}>

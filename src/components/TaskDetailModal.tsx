@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { CalendarIcon, Clock, Users, Target, AlertTriangle, Save, Trash2, Link } from 'lucide-react';
-import { useObjectiveContext } from './ObjectiveContext';
+import { useMissionData } from './MissionDataContext';
 
 interface Task {
   id: string;
@@ -17,8 +17,8 @@ interface Task {
   description?: string;
   priority: 'ASAP' | 'HIGH' | 'MEDIUM' | 'LOW';
   status: 'BACKLOG' | 'TODAY' | 'DOING' | 'COMPLETED' | 'TOMORROW';
-  limitDate?: Date;
-  completedAt?: Date;
+  limitDate?: Date | string;
+  completedAt?: Date | string;
   details?: string;
   peopleHelp?: string[];
   timeNeeded?: number;
@@ -41,7 +41,9 @@ interface TaskDetailModalProps {
 }
 
 export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: TaskDetailModalProps) {
-  const { objectives } = useObjectiveContext();
+  const missionData = useMissionData();
+  const objectives = missionData.objectives.get();
+  
   const [formData, setFormData] = useState<Task>(() => 
     task || {
       id: '',
@@ -67,21 +69,40 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
 
   React.useEffect(() => {
     if (task) {
-      setFormData(task);
+      // Convert string dates to Date objects if needed
+      const updatedTask = {
+        ...task,
+        limitDate: task.limitDate ? (typeof task.limitDate === 'string' ? new Date(task.limitDate) : task.limitDate) : undefined,
+        completedAt: task.completedAt ? (typeof task.completedAt === 'string' ? new Date(task.completedAt) : task.completedAt) : undefined,
+      };
+      setFormData(updatedTask);
     }
   }, [task]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (onSave) {
-      onSave(formData);
+      console.log('TaskDetailModal: Submitting task data', formData);
+      // Convert Date objects back to ISO strings for API
+      const taskForSave = {
+        ...formData,
+        limitDate: formData.limitDate instanceof Date ? formData.limitDate.toISOString() : formData.limitDate,
+        completedAt: formData.completedAt instanceof Date ? formData.completedAt.toISOString() : formData.completedAt,
+      };
+      console.log('TaskDetailModal: Task data for save', taskForSave);
+      onSave(taskForSave);
+    } else {
+      console.warn('TaskDetailModal: No onSave handler provided');
     }
     onOpenChange(false);
   };
 
   const handleDelete = () => {
     if (onDelete && task) {
+      console.log('TaskDetailModal: Deleting task', task.id);
       onDelete(task.id);
+    } else {
+      console.warn('TaskDetailModal: No onDelete handler or task provided');
     }
     onOpenChange(false);
   };
@@ -150,7 +171,7 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
       <DialogContent className="bg-slate-900 border-slate-600 max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-white flex items-center gap-2">
-            {task ? 'Edit Task' : 'Task Details'}
+            {task ? 'Combat Objective Details' : 'Combat Objective Details'}
             {formData.status && (
               <Badge variant="outline" className={getStatusColor(formData.status)}>
                 {formData.status}
@@ -174,24 +195,24 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-4">
               <div>
-                <Label htmlFor="title" className="text-white">Task Title</Label>
+                <Label htmlFor="title" className="text-white">Mission Title</Label>
                 <Input
                   id="title"
                   value={formData.title}
                   onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  placeholder="Enter task title..."
+                  placeholder="Enter mission title..."
                   className="bg-slate-800 border-slate-600 text-white"
                   required
                 />
               </div>
               
               <div>
-                <Label htmlFor="description" className="text-white">Description</Label>
+                <Label htmlFor="description" className="text-white">Mission Brief</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  placeholder="Task description..."
+                  placeholder="Mission description..."
                   className="bg-slate-800 border-slate-600 text-white"
                   rows={3}
                 />
@@ -199,32 +220,32 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="priority" className="text-white">Priority</Label>
+                  <Label htmlFor="priority" className="text-white">Priority Level</Label>
                   <Select value={formData.priority} onValueChange={(value) => setFormData({...formData, priority: value as any})}>
                     <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="ASAP">ASAP</SelectItem>
-                      <SelectItem value="HIGH">High</SelectItem>
-                      <SelectItem value="MEDIUM">Medium</SelectItem>
-                      <SelectItem value="LOW">Low</SelectItem>
+                      <SelectItem value="ASAP">🔴 ASAP - Critical</SelectItem>
+                      <SelectItem value="HIGH">🟠 High Priority</SelectItem>
+                      <SelectItem value="MEDIUM">🟡 Medium Priority</SelectItem>
+                      <SelectItem value="LOW">🟢 Low Priority</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <Label htmlFor="status" className="text-white">Status</Label>
+                  <Label htmlFor="status" className="text-white">Mission Status</Label>
                   <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value as any})}>
                     <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="BACKLOG">Backlog</SelectItem>
-                      <SelectItem value="TODAY">Today</SelectItem>
-                      <SelectItem value="DOING">Doing</SelectItem>
-                      <SelectItem value="COMPLETED">Completed</SelectItem>
-                      <SelectItem value="TOMORROW">Tomorrow</SelectItem>
+                      <SelectItem value="BACKLOG">📋 Mission Backlog</SelectItem>
+                      <SelectItem value="TODAY">⭐ Today's Missions</SelectItem>
+                      <SelectItem value="DOING">🔥 Active Mission</SelectItem>
+                      <SelectItem value="COMPLETED">✅ Mission Complete</SelectItem>
+                      <SelectItem value="TOMORROW">🌅 Tomorrow's Missions</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -244,22 +265,22 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
                 </div>
 
                 <div>
-                  <Label htmlFor="complexity" className="text-white">Complexity</Label>
+                  <Label htmlFor="complexity" className="text-white">Threat Level</Label>
                   <Select value={formData.complexity} onValueChange={(value) => setFormData({...formData, complexity: value as any})}>
                     <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="Simple">Simple</SelectItem>
-                      <SelectItem value="Moderate">Moderate</SelectItem>
-                      <SelectItem value="Complex">Complex</SelectItem>
+                      <SelectItem value="Simple">🟢 Simple</SelectItem>
+                      <SelectItem value="Moderate">🟡 Moderate</SelectItem>
+                      <SelectItem value="Complex">🔴 Complex</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="limitDate" className="text-white">Deadline</Label>
+                <Label htmlFor="limitDate" className="text-white">Mission Deadline</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -267,13 +288,17 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
                       className="w-full justify-start bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.limitDate ? formData.limitDate.toLocaleDateString() : "Select date"}
+                      {formData.limitDate ? 
+                        (formData.limitDate instanceof Date ? 
+                          formData.limitDate.toLocaleDateString() : 
+                          new Date(formData.limitDate).toLocaleDateString()
+                        ) : "Select deadline"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600">
                     <Calendar
                       mode="single"
-                      selected={formData.limitDate}
+                      selected={formData.limitDate instanceof Date ? formData.limitDate : (formData.limitDate ? new Date(formData.limitDate) : undefined)}
                       onSelect={(date) => setFormData({...formData, limitDate: date})}
                       initialFocus
                     />
@@ -282,8 +307,8 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
               </div>
 
               <div>
-                <Label htmlFor="objective" className="text-white">Connected Objective</Label>
-                <Select value={formData.objectiveId || ''} onValueChange={(value) => setFormData({...formData, objectiveId: value || undefined})}>
+                <Label htmlFor="objective" className="text-white">Strategic Objective</Label>
+                <Select value={formData.objectiveId || 'none'} onValueChange={(value) => setFormData({...formData, objectiveId: value === 'none' ? undefined : value})}>
                   <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
                     <SelectValue placeholder="Select objective (optional)">
                       {connectedObjective ? (
@@ -297,7 +322,7 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-600">
-                    <SelectItem value="">No objective</SelectItem>
+                    <SelectItem value="none">No objective</SelectItem>
                     {objectives
                       .filter(obj => obj.status === 'ACTIVE')
                       .map(objective => (
@@ -310,9 +335,9 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
                       ))}
                   </SelectContent>
                 </Select>
-                {connectedObjective && (
+                {connectedObjective?.deadline && (
                   <p className="text-xs text-slate-500 mt-1">
-                    Objective deadline: {connectedObjective.deadline.toLocaleDateString()}
+                    Objective deadline: {new Date(connectedObjective.deadline).toLocaleDateString()}
                   </p>
                 )}
               </div>
@@ -320,19 +345,19 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
 
             <div className="space-y-4">
               <div>
-                <Label htmlFor="purpose" className="text-white">Purpose</Label>
+                <Label htmlFor="purpose" className="text-white">Strategic Purpose</Label>
                 <Textarea
                   id="purpose"
                   value={formData.purpose}
                   onChange={(e) => setFormData({...formData, purpose: e.target.value})}
-                  placeholder="What is this task for?"
+                  placeholder="What is this mission for?"
                   className="bg-slate-800 border-slate-600 text-white"
                   rows={2}
                 />
               </div>
 
               <div>
-                <Label htmlFor="existing" className="text-white">Existing Solutions</Label>
+                <Label htmlFor="existing" className="text-white">Available Assets</Label>
                 <Textarea
                   id="existing"
                   value={formData.existing}
@@ -344,7 +369,7 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
               </div>
 
               <div>
-                <Label htmlFor="complexities" className="text-white">Possible Complexities</Label>
+                <Label htmlFor="complexities" className="text-white">Threat Assessment</Label>
                 <Textarea
                   id="complexities"
                   value={formData.complexities}
@@ -356,12 +381,12 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
               </div>
 
               <div>
-                <Label className="text-white">People Who Can Help</Label>
+                <Label className="text-white">Allied Support</Label>
                 <div className="flex gap-2 mb-2">
                   <Input
                     value={newPerson}
                     onChange={(e) => setNewPerson(e.target.value)}
-                    placeholder="Add person..."
+                    placeholder="Add ally..."
                     className="bg-slate-800 border-slate-600 text-white"
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addPerson())}
                   />
@@ -380,12 +405,12 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
               </div>
 
               <div>
-                <Label className="text-white">Tags</Label>
+                <Label className="text-white">Mission Tags</Label>
                 <div className="flex gap-2 mb-2">
                   <Input
                     value={newTag}
                     onChange={(e) => setNewTag(e.target.value)}
-                    placeholder="Add tag..."
+                    placeholder="Add mission tag..."
                     className="bg-slate-800 border-slate-600 text-white"
                     onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
                   />
@@ -405,12 +430,12 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
           </div>
 
           <div>
-            <Label htmlFor="details" className="text-white">Additional Details</Label>
+            <Label htmlFor="details" className="text-white">Intelligence Report</Label>
             <Textarea
               id="details"
               value={formData.details}
               onChange={(e) => setFormData({...formData, details: e.target.value})}
-              placeholder="Detailed notes, resources, links, etc..."
+              placeholder="Detailed notes, resources, links, intel, etc..."
               className="bg-slate-800 border-slate-600 text-white"
               rows={4}
             />
@@ -426,7 +451,7 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
                   className="bg-red-600 hover:bg-red-700"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Task
+                  Abort Mission
                 </Button>
               )}
             </div>
@@ -444,7 +469,7 @@ export function TaskDetailModal({ open, onOpenChange, task, onSave, onDelete }: 
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 <Save className="w-4 h-4 mr-2" />
-                Save Task
+                Update Mission
               </Button>
             </div>
           </div>
