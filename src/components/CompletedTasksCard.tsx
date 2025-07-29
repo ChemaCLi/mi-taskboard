@@ -1,19 +1,21 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { CheckCircle, Trophy } from 'lucide-react';
-import { TaskDetailModal } from './TaskDetailModal';
-import { useTaskContext } from './DragDropContext';
+import { CheckCircle, Clock, Loader2, AlertTriangle } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useMissionData } from './MissionDataContext';
+import { useModals } from './ModalsContext';
 
 interface TaskItemProps {
   task: {
     id: string;
     title: string;
-    estimatedTime?: number;
+    description?: string;
     priority: 'ASAP' | 'HIGH' | 'MEDIUM' | 'LOW';
+    timeNeeded?: number;
+    completedAt?: string;
   };
   onTaskClick: (task: any) => void;
 }
@@ -34,8 +36,15 @@ function TaskItem({ task, onTaskClick }: TaskItemProps) {
     opacity: isDragging ? 0.5 : 1,
   };
 
-  // Mock completion time - in a real app this would come from actual data
-  const mockCompletedAt = new Date(Date.now() - Math.random() * 6 * 60 * 60 * 1000); // Random time within last 6 hours
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'ASAP': return 'border-red-400 text-red-400';
+      case 'HIGH': return 'border-orange-400 text-orange-400';
+      case 'MEDIUM': return 'border-yellow-400 text-yellow-400';
+      case 'LOW': return 'border-green-400 text-green-400';
+      default: return 'border-slate-400 text-slate-400';
+    }
+  };
 
   return (
     <div
@@ -43,110 +52,149 @@ function TaskItem({ task, onTaskClick }: TaskItemProps) {
       style={style}
       {...attributes}
       {...listeners}
-      className="p-2 bg-emerald-400/10 rounded border border-emerald-400/30 cursor-grab active:cursor-grabbing hover:border-emerald-400/50 transition-colors"
+      className="p-3 bg-slate-700/50 rounded border border-slate-600 hover:border-purple-400/50 transition-colors cursor-grab active:cursor-grabbing"
       onClick={(e) => {
         if (!isDragging && e.target === e.currentTarget) {
           onTaskClick(task);
         }
       }}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-white text-sm">{task.title}</span>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400">{task.estimatedTime || 0}h</span>
-          <Badge 
-            variant="outline" 
-            className="text-xs border-emerald-400 text-emerald-400"
-          >
-            ✓
+      <div className="space-y-2">
+        <div className="flex items-start justify-between">
+          <h4 className="text-white font-medium text-sm flex-1 line-through">{task.title}</h4>
+          <Badge variant="outline" className={`text-xs ${getPriorityColor(task.priority)}`}>
+            {task.priority}
           </Badge>
         </div>
-      </div>
-      <div className="text-xs text-slate-500 mt-1">
-        {mockCompletedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        
+        {task.description && (
+          <p className="text-slate-400 text-xs line-clamp-2 line-through">{task.description}</p>
+        )}
+        
+        <div className="flex items-center justify-between text-xs text-slate-400">
+          <div className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            <span>{task.timeNeeded || 0}h</span>
+          </div>
+          
+          {task.completedAt && (
+            <div className="text-purple-400">
+              {new Date(task.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
 export function CompletedTasksCard() {
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(null);
-  const { tasks, updateTask, deleteTask } = useTaskContext();
+  const missionData = useMissionData();
+  const modals = useModals();
 
   const { setNodeRef } = useDroppable({
     id: 'COMPLETED',
   });
 
-  const completedTasks = tasks.filter(task => task.status === 'COMPLETED');
+  // Get tasks and filter for COMPLETED status and completed today
+  const allTasks = missionData.tasks.get();
+  const completedTasks = useMemo(() => {
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+    
+    return allTasks.filter(task => 
+      task.status === 'COMPLETED' && 
+      task.completedAt && 
+      new Date(task.completedAt) >= startOfDay && 
+      new Date(task.completedAt) <= endOfDay
+    );
+  }, [allTasks]);
 
   const handleTaskClick = (task: any) => {
-    setSelectedTask(task);
-    setShowDetailModal(true);
+    // Use the centralized modal system to show task details
+    modals.tasks.showDetail(task.id, task);
   };
 
-  const handleTaskSave = (updatedTask: any) => {
-    updateTask(updatedTask);
-  };
-
-  const handleTaskDelete = (taskId: string) => {
-    deleteTask(taskId);
-  };
-
-  const totalXP = completedTasks.reduce((total, task) => {
-    const priorityXP = {
-      'ASAP': 100,
-      'HIGH': 75,
-      'MEDIUM': 50,
-      'LOW': 25
-    };
-    return total + (priorityXP[task.priority] || 0);
-  }, 0);
-
-  return (
-    <>
-      <Card className="bg-slate-800/50 border-emerald-400/30">
+  // Show loading state
+  if (missionData.tasks.isLoading) {
+    return (
+      <Card className="bg-slate-800/50 border-purple-400/30">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center justify-between text-emerald-400">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5" />
-              Completed Today
-              <Badge variant="outline" className="border-emerald-400 text-emerald-400">
-                {completedTasks.length}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-1 text-yellow-400">
-              <Trophy className="w-4 h-4" />
-              <span className="text-sm">{totalXP} XP</span>
-            </div>
+          <CardTitle className="flex items-center gap-2 text-purple-400">
+            <CheckCircle className="w-5 h-5" />
+            Completed Today
+            <Badge variant="outline" className="border-purple-400 text-purple-400">
+              <Loader2 className="w-3 h-3 animate-spin" />
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div
-            ref={setNodeRef}
-            className="space-y-2 max-h-48 overflow-y-auto min-h-[150px] p-2 rounded-lg bg-slate-800/20 border-2 border-dashed border-emerald-400/30"
-          >
-            {completedTasks.map((task) => (
-              <TaskItem key={task.id} task={task} onTaskClick={handleTaskClick} />
-            ))}
-            {completedTasks.length === 0 && (
-              <div className="text-center text-slate-500 py-6">
-                <CheckCircle className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                <p>No completed tasks</p>
-                <p className="text-xs">Completed tasks will appear here</p>
-              </div>
-            )}
+          <div className="space-y-2 max-h-48 overflow-y-auto min-h-[150px] p-2 rounded-lg bg-slate-800/20 border-2 border-dashed border-purple-400/30">
+            <div className="text-center text-slate-500 py-6">
+              <Loader2 className="w-6 h-6 mx-auto mb-2 animate-spin" />
+              <p>Loading completed tasks...</p>
+            </div>
           </div>
         </CardContent>
       </Card>
+    );
+  }
 
-      <TaskDetailModal
-        open={showDetailModal}
-        onOpenChange={setShowDetailModal}
-        task={selectedTask}
-        onSave={handleTaskSave}
-        onDelete={handleTaskDelete}
-      />
-    </>
+  // Show error state
+  if (missionData.tasks.error) {
+    return (
+      <Card className="bg-slate-800/50 border-purple-400/30">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-purple-400">
+            <CheckCircle className="w-5 h-5" />
+            Completed Today
+            <Badge variant="outline" className="border-red-400 text-red-400">
+              <AlertTriangle className="w-3 h-3" />
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2 max-h-48 overflow-y-auto min-h-[150px] p-2 rounded-lg bg-slate-800/20 border-2 border-dashed border-purple-400/30">
+            <div className="text-center text-slate-500 py-6">
+              <AlertTriangle className="w-6 h-6 mx-auto mb-2 text-red-400" />
+              <p>Error loading tasks</p>
+              <p className="text-xs text-slate-400">{missionData.tasks.error}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="bg-slate-800/50 border-purple-400/30">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-purple-400">
+          <CheckCircle className="w-5 h-5" />
+          Completed Today
+          <Badge variant="outline" className="border-purple-400 text-purple-400">
+            {completedTasks.length}
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div
+          ref={setNodeRef}
+          className="space-y-2 max-h-48 overflow-y-auto min-h-[150px] p-2 rounded-lg bg-slate-800/20 border-2 border-dashed border-purple-400/30"
+        >
+          {completedTasks.map((task) => (
+            <TaskItem key={task.id} task={task} onTaskClick={handleTaskClick} />
+          ))}
+          {completedTasks.length === 0 && (
+            <div className="text-center text-slate-500 py-6">
+              <CheckCircle className="w-6 h-6 mx-auto mb-2 opacity-50" />
+              <p>No tasks completed today</p>
+              <p className="text-xs">Complete tasks to see them here</p>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

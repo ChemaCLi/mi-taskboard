@@ -1,19 +1,22 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { ArrowRight, Clock } from 'lucide-react';
-import { TaskDetailModal } from './TaskDetailModal';
-import { useTaskContext } from './DragDropContext';
+import { Calendar, Clock, Loader2, AlertTriangle } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useMissionData } from './MissionDataContext';
+import { useModals } from './ModalsContext';
 
 interface TaskItemProps {
   task: {
     id: string;
     title: string;
-    estimatedTime?: number;
+    description?: string;
     priority: 'ASAP' | 'HIGH' | 'MEDIUM' | 'LOW';
+    timeNeeded?: number;
+    limitDate?: string;
+    updatedAt?: string;
   };
   onTaskClick: (task: any) => void;
 }
@@ -34,27 +37,40 @@ function TaskItem({ task, onTaskClick }: TaskItemProps) {
     opacity: isDragging ? 0.5 : 1,
   };
 
-  // Mock reason for being in tomorrow's queue
-  const mockReasons = ['planned', 'moved', 'incomplete'];
-  const mockReason = mockReasons[Math.floor(Math.random() * mockReasons.length)];
-
-  const getReasonColor = (reason: string) => {
-    switch (reason) {
-      case 'planned': return 'border-blue-400 text-blue-400';
-      case 'moved': return 'border-yellow-400 text-yellow-400';
-      case 'incomplete': return 'border-red-400 text-red-400';
-      default: return 'border-gray-400 text-gray-400';
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'ASAP': return 'border-red-400 text-red-400';
+      case 'HIGH': return 'border-orange-400 text-orange-400';
+      case 'MEDIUM': return 'border-yellow-400 text-yellow-400';
+      case 'LOW': return 'border-green-400 text-green-400';
+      default: return 'border-slate-400 text-slate-400';
     }
   };
 
-  const getReasonText = (reason: string) => {
-    switch (reason) {
-      case 'planned': return 'Planned';
-      case 'moved': return 'Moved';
-      case 'incomplete': return 'Incomplete';
-      default: return 'Unknown';
+  const getReasonBadge = (task: any) => {
+    if (task.limitDate) {
+      const limitDate = new Date(task.limitDate);
+      const today = new Date();
+      const daysDiff = Math.ceil((limitDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff <= 1) return { text: 'Due Soon', color: 'bg-red-500 text-white' };
+      if (daysDiff <= 3) return { text: 'This Week', color: 'bg-orange-500 text-white' };
+      return { text: 'Scheduled', color: 'bg-blue-500 text-white' };
     }
+    
+    if (task.updatedAt) {
+      const updatedDate = new Date(task.updatedAt);
+      const today = new Date();
+      const daysDiff = Math.ceil((today.getTime() - updatedDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff <= 1) return { text: 'Recently Updated', color: 'bg-green-500 text-white' };
+      return { text: 'Queued', color: 'bg-slate-500 text-white' };
+    }
+    
+    return { text: 'Queued', color: 'bg-slate-500 text-white' };
   };
+
+  const reason = getReasonBadge(task);
 
   return (
     <div
@@ -62,107 +78,147 @@ function TaskItem({ task, onTaskClick }: TaskItemProps) {
       style={style}
       {...attributes}
       {...listeners}
-      className="p-2 bg-slate-700/50 rounded border border-slate-600 hover:border-indigo-400/50 transition-colors cursor-grab active:cursor-grabbing"
+      className="p-3 bg-slate-700/50 rounded border border-slate-600 hover:border-orange-400/50 transition-colors cursor-grab active:cursor-grabbing"
       onClick={(e) => {
         if (!isDragging && e.target === e.currentTarget) {
           onTaskClick(task);
         }
       }}
     >
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-white text-sm">{task.title}</span>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 text-slate-400">
-            <Clock className="w-3 h-3" />
-            <span className="text-xs">{task.estimatedTime || 0}h</span>
-          </div>
+      <div className="space-y-2">
+        <div className="flex items-start justify-between">
+          <h4 className="text-white font-medium text-sm flex-1">{task.title}</h4>
+          <Badge variant="outline" className={`text-xs ${getPriorityColor(task.priority)}`}>
+            {task.priority}
+          </Badge>
         </div>
-      </div>
-      <div className="flex items-center justify-between">
-        <Badge 
-          variant="outline" 
-          className={`text-xs ${getReasonColor(mockReason)}`}
-        >
-          {getReasonText(mockReason)}
-        </Badge>
-        <Badge 
-          variant="outline" 
-          className={`text-xs ${
-            task.priority === 'ASAP' ? 'border-red-400 text-red-400' :
-            task.priority === 'HIGH' ? 'border-orange-400 text-orange-400' :
-            task.priority === 'MEDIUM' ? 'border-yellow-400 text-yellow-400' :
-            'border-green-400 text-green-400'
-          }`}
-        >
-          {task.priority}
-        </Badge>
+        
+        {task.description && (
+          <p className="text-slate-400 text-xs line-clamp-2">{task.description}</p>
+        )}
+        
+        <div className="flex items-center justify-between text-xs text-slate-400">
+          <div className="flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            <span>{task.timeNeeded || 0}h</span>
+          </div>
+          
+          {task.limitDate && (
+            <div className="text-orange-400">
+              {new Date(task.limitDate).toLocaleDateString()}
+            </div>
+          )}
+        </div>
+        
+        <div className="flex justify-end">
+          <Badge className={`text-xs ${reason.color}`}>
+            {reason.text}
+          </Badge>
+        </div>
       </div>
     </div>
   );
 }
 
 export function TomorrowTasksCard() {
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(null);
-  const { tasks, updateTask, deleteTask } = useTaskContext();
+  const missionData = useMissionData();
+  const modals = useModals();
 
   const { setNodeRef } = useDroppable({
     id: 'TOMORROW',
   });
 
-  const tomorrowTasks = tasks.filter(task => task.status === 'TOMORROW');
+  // Get tasks and filter for TOMORROW status
+  const allTasks = missionData.tasks.get();
+  const tomorrowTasks = useMemo(() => 
+    allTasks.filter(task => task.status === 'TOMORROW'), 
+    [allTasks]
+  );
 
   const handleTaskClick = (task: any) => {
-    setSelectedTask(task);
-    setShowDetailModal(true);
+    // Use the centralized modal system to show task details
+    modals.tasks.showDetail(task.id, task);
   };
 
-  const handleTaskSave = (updatedTask: any) => {
-    updateTask(updatedTask);
-  };
-
-  const handleTaskDelete = (taskId: string) => {
-    deleteTask(taskId);
-  };
-
-  return (
-    <>
-      <Card className="bg-slate-800/50 border-indigo-400/30">
+  // Show loading state
+  if (missionData.tasks.isLoading) {
+    return (
+      <Card className="bg-slate-800/50 border-orange-400/30">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-indigo-400">
-            <ArrowRight className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-orange-400">
+            <Calendar className="w-5 h-5" />
             Tomorrow's Queue
-            <Badge variant="outline" className="border-indigo-400 text-indigo-400">
-              {tomorrowTasks.length}
+            <Badge variant="outline" className="border-orange-400 text-orange-400">
+              <Loader2 className="w-3 h-3 animate-spin" />
             </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div
-            ref={setNodeRef}
-            className="space-y-2 max-h-48 overflow-y-auto min-h-[150px] p-2 rounded-lg bg-slate-800/20 border-2 border-dashed border-indigo-400/30"
-          >
-            {tomorrowTasks.map((task) => (
-              <TaskItem key={task.id} task={task} onTaskClick={handleTaskClick} />
-            ))}
-            {tomorrowTasks.length === 0 && (
-              <div className="text-center text-slate-500 py-6">
-                <ArrowRight className="w-6 h-6 mx-auto mb-2 opacity-50" />
-                <p>No tasks for tomorrow</p>
-                <p className="text-xs">Drop tasks here for tomorrow</p>
-              </div>
-            )}
+          <div className="space-y-2 max-h-48 overflow-y-auto min-h-[150px] p-2 rounded-lg bg-slate-800/20 border-2 border-dashed border-orange-400/30">
+            <div className="text-center text-slate-500 py-6">
+              <Loader2 className="w-6 h-6 mx-auto mb-2 animate-spin" />
+              <p>Loading tomorrow's tasks...</p>
+            </div>
           </div>
         </CardContent>
       </Card>
+    );
+  }
 
-      <TaskDetailModal
-        open={showDetailModal}
-        onOpenChange={setShowDetailModal}
-        task={selectedTask}
-        onSave={handleTaskSave}
-        onDelete={handleTaskDelete}
-      />
-    </>
+  // Show error state
+  if (missionData.tasks.error) {
+    return (
+      <Card className="bg-slate-800/50 border-orange-400/30">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-orange-400">
+            <Calendar className="w-5 h-5" />
+            Tomorrow's Queue
+            <Badge variant="outline" className="border-red-400 text-red-400">
+              <AlertTriangle className="w-3 h-3" />
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2 max-h-48 overflow-y-auto min-h-[150px] p-2 rounded-lg bg-slate-800/20 border-2 border-dashed border-orange-400/30">
+            <div className="text-center text-slate-500 py-6">
+              <AlertTriangle className="w-6 h-6 mx-auto mb-2 text-red-400" />
+              <p>Error loading tasks</p>
+              <p className="text-xs text-slate-400">{missionData.tasks.error}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="bg-slate-800/50 border-orange-400/30">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-orange-400">
+          <Calendar className="w-5 h-5" />
+          Tomorrow's Queue
+          <Badge variant="outline" className="border-orange-400 text-orange-400">
+            {tomorrowTasks.length}
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div
+          ref={setNodeRef}
+          className="space-y-2 max-h-48 overflow-y-auto min-h-[150px] p-2 rounded-lg bg-slate-800/20 border-2 border-dashed border-orange-400/30"
+        >
+          {tomorrowTasks.map((task) => (
+            <TaskItem key={task.id} task={task} onTaskClick={handleTaskClick} />
+          ))}
+          {tomorrowTasks.length === 0 && (
+            <div className="text-center text-slate-500 py-6">
+              <Calendar className="w-6 h-6 mx-auto mb-2 opacity-50" />
+              <p>No tasks for tomorrow</p>
+              <p className="text-xs">Drop tasks here to schedule for tomorrow</p>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

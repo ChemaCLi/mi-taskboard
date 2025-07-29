@@ -18,7 +18,7 @@ import { PomodoroTimer } from './PomodoroTimer';
 import { SettingsModal } from './SettingsModal';
 import { StartDayModal } from './StartDayModal';
 import { EndDayModal } from './EndDayModal';
-import { TaskProvider } from './DragDropContext';
+import { TaskDragDropProvider } from './DragDropContext';
 import { ObjectiveProvider, useObjectiveContext } from './ObjectiveContext';
 import { useAuth } from './AuthContext';
 
@@ -228,9 +228,9 @@ function MainApp() {
 export default function App() {
   return (
     <ObjectiveProvider>
-      <TaskProvider>
+      <TaskDragDropProvider>
         <MainApp />
-      </TaskProvider>
+      </TaskDragDropProvider>
     </ObjectiveProvider>
   );
 } 

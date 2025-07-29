@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useCallback } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -17,6 +17,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Badge } from './ui/badge';
+import { useMissionData } from './MissionDataContext';
 
 interface Task {
   id: string;
@@ -24,131 +25,48 @@ interface Task {
   description?: string;
   priority: 'ASAP' | 'HIGH' | 'MEDIUM' | 'LOW';
   status: 'BACKLOG' | 'TODAY' | 'DOING' | 'COMPLETED' | 'TOMORROW';
-  limitDate?: Date;
-  estimatedTime?: number;
-  complexity?: 'Simple' | 'Moderate' | 'Complex';
-  tags?: string[];
+  limitDate?: string;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  details?: string;
+  peopleHelp?: string[];
+  timeNeeded?: number;
+  purpose?: string;
+  existing?: string;
+  complexities?: string;
+  resources?: any;
   objectiveId?: string;
+  userId: string;
 }
 
-interface TaskContextType {
-  tasks: Task[];
-  updateTaskStatus: (taskId: string, newStatus: Task['status']) => void;
-  updateTask: (task: Task) => void;
-  deleteTask: (taskId: string) => void;
-  activeTask: Task | null;
+interface TaskDragDropContextType {
+  // This context is now mainly for providing the DndContext wrapper
+  // The actual data operations are handled by MissionDataContext
 }
 
-const TaskContext = createContext<TaskContextType | null>(null);
+const TaskDragDropContext = createContext<TaskDragDropContextType | undefined>(undefined);
 
-export const useTaskContext = () => {
-  const context = useContext(TaskContext);
+export const useTaskDragDropContext = () => {
+  const context = useContext(TaskDragDropContext);
   if (!context) {
-    throw new Error('useTaskContext must be used within a TaskProvider');
+    throw new Error('useTaskDragDropContext must be used within a TaskDragDropProvider');
   }
   return context;
 };
 
-interface TaskProviderProps {
+interface TaskDragDropProviderProps {
   children: React.ReactNode;
 }
 
-// Mock initial tasks data
-const initialTasks: Task[] = [
-  {
-    id: '1',
-    title: 'Fix critical login bug',
-    description: 'Users cant login with Google OAuth',
-    priority: 'ASAP',
-    status: 'BACKLOG',
-    limitDate: new Date('2025-01-29'),
-    estimatedTime: 2,
-    complexity: 'Moderate',
-    tags: ['bug', 'auth', 'critical'],
-    objectiveId: 'obj-2' // Connected to User Authentication objective
-  },
-  {
-    id: '2',
-    title: 'Update user profile API',
-    description: 'Add new fields for user preferences',
-    priority: 'HIGH',
-    status: 'BACKLOG',
-    limitDate: new Date('2025-01-30'),
-    estimatedTime: 4,
-    complexity: 'Moderate',
-    tags: ['api', 'backend'],
-    objectiveId: 'obj-2' // Connected to User Authentication objective
-  },
-  {
-    id: '3',
-    title: 'Review pull requests',
-    priority: 'HIGH',
-    status: 'TODAY',
-    estimatedTime: 1,
-    tags: ['review']
-  },
-  {
-    id: '4',
-    title: 'Update documentation',
-    priority: 'MEDIUM',
-    status: 'TODAY',
-    estimatedTime: 2,
-    tags: ['docs']
-  },
-  {
-    id: '5',
-    title: 'Implementing user authentication',
-    priority: 'HIGH',
-    status: 'DOING',
-    estimatedTime: 2,
-    tags: ['feature', 'auth'],
-    objectiveId: 'obj-2' // Connected to User Authentication objective
-  },
-  {
-    id: '6',
-    title: 'Team standup meeting',
-    priority: 'HIGH',
-    status: 'COMPLETED',
-    estimatedTime: 0.5,
-    tags: ['meeting']
-  },
-  {
-    id: '7',
-    title: 'Code review for dashboard',
-    priority: 'MEDIUM',
-    status: 'COMPLETED',
-    estimatedTime: 1,
-    tags: ['review'],
-    objectiveId: 'obj-1' // Connected to Dashboard Redesign objective
-  },
-  {
-    id: '8',
-    title: 'Design new feature wireframes',
-    priority: 'HIGH',
-    status: 'TOMORROW',
-    estimatedTime: 3,
-    tags: ['design'],
-    objectiveId: 'obj-1' // Connected to Dashboard Redesign objective
-  },
-  {
-    id: '9',
-    title: 'Refactor authentication module',
-    priority: 'MEDIUM',
-    status: 'TOMORROW',
-    estimatedTime: 4,
-    tags: ['refactor', 'auth'],
-    objectiveId: 'obj-2' // Connected to User Authentication objective
-  }
-];
-
-export function TaskProvider({ children }: TaskProviderProps) {
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
-
+export function TaskDragDropProvider({ children }: TaskDragDropProviderProps) {
+  const missionData = useMissionData();
+  
+  // Configure sensors for drag and drop
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 3, // Require dragging at least 3px to activate
       },
     }),
     useSensor(TouchSensor, {
@@ -162,50 +80,71 @@ export function TaskProvider({ children }: TaskProviderProps) {
     })
   );
 
-  const updateTaskStatus = (taskId: string, newStatus: Task['status']) => {
-    setTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === taskId ? { ...task, status: newStatus } : task
-      )
-    );
+  // Map container IDs to task statuses
+  const getStatusFromContainerId = (containerId: string): 'BACKLOG' | 'TODAY' | 'DOING' | 'COMPLETED' | 'TOMORROW' => {
+    switch (containerId) {
+      case 'BACKLOG':
+        return 'BACKLOG';
+      case 'TODAY':
+        return 'TODAY';
+      case 'DOING':
+        return 'DOING';
+      case 'COMPLETED':
+        return 'COMPLETED';
+      case 'TOMORROW':
+        return 'TOMORROW';
+      default:
+        return 'BACKLOG'; // fallback
+    }
   };
 
-  const updateTask = (updatedTask: Task) => {
-    setTasks(prevTasks =>
-      prevTasks.map(task =>
-        task.id === updatedTask.id ? updatedTask : task
-      )
-    );
-  };
-
-  const deleteTask = (taskId: string) => {
-    setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
-  };
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const activeTask = tasks.find(task => task.id === active.id);
-    setActiveTask(activeTask || null);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
     
-    if (!over) {
-      setActiveTask(null);
-      return;
+    if (!over || !active) return;
+    
+    const taskId = active.id as string;
+    const targetContainerId = over.id as string;
+    const newStatus = getStatusFromContainerId(targetContainerId);
+    
+    // Find the current task
+    const currentTask = missionData.tasks.get().find(task => task.id === taskId);
+    if (!currentTask) return;
+    
+    // Skip update if task is already in the target status
+    if (currentTask.status === newStatus) return;
+
+    console.log(`Moving task ${taskId} from ${currentTask.status} to ${newStatus}`);
+
+    // Prepare update data
+    const updateData: Partial<Task> = {
+      status: newStatus,
+    };
+
+    // Special handling for completed tasks
+    if (newStatus === 'COMPLETED' && currentTask.status !== 'COMPLETED') {
+      updateData.completedAt = new Date().toISOString();
+    } else if (newStatus !== 'COMPLETED' && currentTask.status === 'COMPLETED') {
+      // Moving out of completed - clear completedAt
+      updateData.completedAt = undefined;
     }
 
-    const activeTaskId = active.id as string;
-    const overContainerId = over.id as string;
-
-    // If dropped on a droppable container (status column)
-    if (['BACKLOG', 'TODAY', 'DOING', 'COMPLETED', 'TOMORROW'].includes(overContainerId)) {
-      updateTaskStatus(activeTaskId, overContainerId as Task['status']);
+    try {
+      // Optimistic update: immediately update the UI
+      // The MissionDataContext will handle the optimistic update and API call
+      await missionData.tasks.update(taskId, updateData);
+      
+      console.log(`Successfully moved task ${taskId} to ${newStatus}`);
+    } catch (error) {
+      console.error('Error moving task:', error);
+      // The MissionDataContext should handle error rollback
     }
+  }, [missionData.tasks]);
 
-    setActiveTask(null);
-  };
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    // This can be used for visual feedback during drag operations
+    // For now, we'll keep it simple
+  }, []);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -218,7 +157,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
   };
 
   return (
-    <TaskContext.Provider value={{ tasks, updateTaskStatus, updateTask, deleteTask, activeTask }}>
+    <TaskDragDropContext.Provider value={{}}>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -227,21 +166,23 @@ export function TaskProvider({ children }: TaskProviderProps) {
       >
         {children}
         <DragOverlay>
-          {activeTask ? (
-            <div className="p-3 bg-slate-700 rounded-lg border border-slate-600 shadow-lg opacity-90 cursor-grabbing">
-              <div className="flex items-start justify-between mb-2">
-                <h4 className="text-white font-medium flex-1">{activeTask.title}</h4>
-                <Badge className={getPriorityColor(activeTask.priority)}>
-                  {activeTask.priority}
-                </Badge>
-              </div>
-              {activeTask.description && (
-                <p className="text-slate-400 text-sm">{activeTask.description}</p>
-              )}
-            </div>
-          ) : null}
+          {/* We'll handle the drag overlay in individual components if needed */}
         </DragOverlay>
       </DndContext>
-    </TaskContext.Provider>
+    </TaskDragDropContext.Provider>
   );
-} 
+}
+
+// Legacy export for backwards compatibility - but components should use MissionDataContext directly
+export const useTaskContext = () => {
+  console.warn('useTaskContext is deprecated. Components should use useMissionData() directly.');
+  const missionData = useMissionData();
+  
+  return {
+    tasks: missionData.tasks.get(),
+    updateTask: missionData.tasks.update,
+    deleteTask: missionData.tasks.delete,
+    isLoading: missionData.tasks.isLoading,
+    error: missionData.tasks.error,
+  };
+}; 
