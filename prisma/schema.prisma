@@ -53,6 +53,10 @@ model Task {
   complexities  String?     // Possible complexities
   resources     Json?       // Files, images, links
   
+  // Connection to objective
+  objectiveId   String?
+  objective     Objective?  @relation(fields: [objectiveId], references: [id], onDelete: SetNull)
+  
   userId        String
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -60,14 +64,14 @@ model Task {
 }
 
 model Objective {
-  id            String    @id @default(cuid())
+  id            String          @id @default(cuid())
   title         String
   description   String?
   deadline      DateTime
-  completed     Boolean   @default(false)
-  priority      Priority  @default(MEDIUM)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  status        ObjectiveStatus @default(ACTIVE)
+  priority      Priority        @default(MEDIUM)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
   
   // Additional objective data
   details       String?   // Markdown content
@@ -77,6 +81,9 @@ model Objective {
   existing      String?   // Existing solutions/resources
   complexities  String?   // Possible complexities
   resources     Json?     // Files, images, links
+  
+  // Relations
+  tasks         Task[]    // Tasks connected to this objective
   
   userId        String
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -238,6 +245,15 @@ enum CycleType {
   THREE
   FOUR
   FIVE
+}
+
+enum ObjectiveStatus {
+  ACTIVE
+  ACHIEVED
+  ABORTED
+  INTERRUPTED
+  ARCHIVED
+  PAUSED
 }
 
 enum LogType {

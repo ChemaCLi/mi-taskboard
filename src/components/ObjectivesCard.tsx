@@ -2,73 +2,22 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Plus, Target, Clock, Bell } from 'lucide-react';
+import { Plus, Target, Clock, Bell, Star, X, Hand, Snowflake, Pause } from 'lucide-react';
 import { CreateObjectiveModal } from './CreateObjectiveModal';
-
-interface Objective {
-  id: string;
-  title: string;
-  description: string;
-  deadline: Date;
-  createdAt: Date;
-  completed: boolean;
-  priority: 'high' | 'medium' | 'low';
-}
-
-interface Reminder {
-  id: string;
-  text: string;
-  date: Date;
-  isNear: boolean;
-}
+import { ObjectiveDetailModal } from './ObjectiveDetailModal';
+import { ReminderDetailModal } from './ReminderDetailModal';
+import { useObjectiveContext } from './ObjectiveContext';
 
 export function ObjectivesCard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showObjectiveModal, setShowObjectiveModal] = useState(false);
+  const [showReminderModal, setShowReminderModal] = useState(false);
+  const [selectedObjective, setSelectedObjective] = useState(null);
+  const [selectedReminder, setSelectedReminder] = useState(null);
   
-  // Mock data
-  const objectives: Objective[] = [
-    {
-      id: '1',
-      title: 'Complete Q1 Dashboard Redesign',
-      description: 'Redesign the main analytics dashboard with new UX improvements',
-      deadline: new Date('2025-02-15'),
-      createdAt: new Date('2025-01-01'),
-      completed: false,
-      priority: 'high'
-    },
-    {
-      id: '2', 
-      title: 'Implement User Authentication',
-      description: 'Add OAuth and JWT authentication system',
-      deadline: new Date('2025-02-28'),
-      createdAt: new Date('2025-01-10'),
-      completed: false,
-      priority: 'medium'
-    }
-  ];
+  const { objectives, reminders, updateObjective, deleteObjective, updateReminder, deleteReminder } = useObjectiveContext();
 
-  const reminders: Reminder[] = [
-    {
-      id: '1',
-      text: 'Review design mockups with team',
-      date: new Date('2025-01-30'),
-      isNear: true
-    },
-    {
-      id: '2',
-      text: 'Schedule user testing sessions',
-      date: new Date('2025-02-05'),
-      isNear: true
-    },
-    {
-      id: '3',
-      text: 'Prepare Q2 planning presentation',
-      date: new Date('2025-03-15'),
-      isNear: false
-    }
-  ];
-
-  const getDeadlineStatus = (objective: Objective) => {
+  const getDeadlineStatus = (objective: any) => {
     const now = new Date();
     const totalTime = objective.deadline.getTime() - objective.createdAt.getTime();
     const elapsed = now.getTime() - objective.createdAt.getTime();
@@ -86,8 +35,58 @@ export function ObjectivesCard() {
     }
   };
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'ACTIVE': return <Target className="w-4 h-4 text-cyan-400" />;
+      case 'ACHIEVED': return <Star className="w-4 h-4 text-green-400" />;
+      case 'ABORTED': return <X className="w-4 h-4 text-red-400" />;
+      case 'INTERRUPTED': return <Hand className="w-4 h-4 text-orange-400" />;
+      case 'ARCHIVED': return <Snowflake className="w-4 h-4 text-slate-400" />;
+      case 'PAUSED': return <Pause className="w-4 h-4 text-yellow-400" />;
+      default: return <Target className="w-4 h-4 text-cyan-400" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'ACTIVE': return 'border-cyan-400 text-cyan-400';
+      case 'ACHIEVED': return 'border-green-400 text-green-400';
+      case 'ABORTED': return 'border-red-400 text-red-400';
+      case 'INTERRUPTED': return 'border-orange-400 text-orange-400';
+      case 'ARCHIVED': return 'border-slate-400 text-slate-400';
+      case 'PAUSED': return 'border-yellow-400 text-yellow-400';
+      default: return 'border-cyan-400 text-cyan-400';
+    }
+  };
+
   const nearReminders = reminders.filter(r => r.isNear);
   const futureReminders = reminders.filter(r => !r.isNear);
+
+  const handleObjectiveClick = (objective: any) => {
+    setSelectedObjective(objective);
+    setShowObjectiveModal(true);
+  };
+
+  const handleReminderClick = (reminder: any) => {
+    setSelectedReminder(reminder);
+    setShowReminderModal(true);
+  };
+
+  const handleObjectiveSave = (updatedObjective: any) => {
+    updateObjective(updatedObjective);
+  };
+
+  const handleObjectiveDelete = (objectiveId: string) => {
+    deleteObjective(objectiveId);
+  };
+
+  const handleReminderSave = (updatedReminder: any) => {
+    updateReminder(updatedReminder);
+  };
+
+  const handleReminderDelete = (reminderId: string) => {
+    deleteReminder(reminderId);
+  };
 
   return (
     <>
@@ -113,26 +112,38 @@ export function ObjectivesCard() {
             {objectives.map((objective) => {
               const { color, daysRemaining, status } = getDeadlineStatus(objective);
               return (
-                <div key={objective.id} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600">
+                <div key={objective.id} className="p-3 bg-slate-700/50 rounded-lg border border-slate-600 hover:border-cyan-400/50 transition-colors cursor-pointer" onClick={() => handleObjectiveClick(objective)}>
                   <div className="flex items-start justify-between mb-2">
-                    <h4 className="text-white font-medium">{objective.title}</h4>
-                    <Badge 
-                      variant="outline" 
-                      className={`
-                        ${color === 'green' ? 'border-green-400 text-green-400' : ''}
-                        ${color === 'yellow' ? 'border-yellow-400 text-yellow-400' : ''}
-                        ${color === 'red' ? 'border-red-400 text-red-400' : ''}
-                      `}
-                    >
-                      {daysRemaining}d
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(objective.status)}
+                      <h4 className="text-white font-medium">{objective.title}</h4>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className={getStatusColor(objective.status)}>
+                        {objective.status}
+                      </Badge>
+                      {objective.status === 'ACTIVE' && (
+                        <Badge 
+                          variant="outline" 
+                          className={`
+                            ${color === 'green' ? 'border-green-400 text-green-400' : ''}
+                            ${color === 'yellow' ? 'border-yellow-400 text-yellow-400' : ''}
+                            ${color === 'red' ? 'border-red-400 text-red-400' : ''}
+                          `}
+                        >
+                          {daysRemaining}d
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <p className="text-slate-400 text-sm mb-2">{objective.description}</p>
                   <div className="flex items-center justify-between">
-                    <Badge variant="secondary" className="text-xs">
-                      {status}
-                    </Badge>
-                    <span className="text-xs text-slate-500">
+                    {objective.status === 'ACTIVE' && (
+                      <Badge variant="secondary" className="text-xs">
+                        {status}
+                      </Badge>
+                    )}
+                    <span className="text-xs text-slate-500 ml-auto">
                       Due: {objective.deadline.toLocaleDateString()}
                     </span>
                   </div>
@@ -153,7 +164,7 @@ export function ObjectivesCard() {
                 <h5 className="text-yellow-400 text-sm mb-2">This Week</h5>
                 <div className="space-y-2">
                   {nearReminders.map((reminder) => (
-                    <div key={reminder.id} className="flex items-center gap-2 p-2 bg-yellow-400/10 rounded border border-yellow-400/30">
+                    <div key={reminder.id} className="flex items-center gap-2 p-2 bg-yellow-400/10 rounded border border-yellow-400/30 hover:border-yellow-400/50 cursor-pointer transition-colors" onClick={() => handleReminderClick(reminder)}>
                       <Clock className="w-3 h-3 text-yellow-400" />
                       <span className="text-white text-sm">{reminder.text}</span>
                       <span className="text-xs text-yellow-400 ml-auto">
@@ -170,7 +181,7 @@ export function ObjectivesCard() {
                 <h5 className="text-slate-400 text-sm mb-2">Upcoming</h5>
                 <div className="space-y-2">
                   {futureReminders.map((reminder) => (
-                    <div key={reminder.id} className="flex items-center gap-2 p-2 bg-slate-700/30 rounded">
+                    <div key={reminder.id} className="flex items-center gap-2 p-2 bg-slate-700/30 rounded hover:bg-slate-700/50 cursor-pointer transition-colors" onClick={() => handleReminderClick(reminder)}>
                       <Clock className="w-3 h-3 text-slate-400" />
                       <span className="text-slate-300 text-sm">{reminder.text}</span>
                       <span className="text-xs text-slate-500 ml-auto">
@@ -188,6 +199,22 @@ export function ObjectivesCard() {
       <CreateObjectiveModal 
         open={showCreateModal} 
         onOpenChange={setShowCreateModal} 
+      />
+
+      <ObjectiveDetailModal
+        open={showObjectiveModal}
+        onOpenChange={setShowObjectiveModal}
+        objective={selectedObjective}
+        onSave={handleObjectiveSave}
+        onDelete={handleObjectiveDelete}
+      />
+
+      <ReminderDetailModal
+        open={showReminderModal}
+        onOpenChange={setShowReminderModal}
+        reminder={selectedReminder}
+        onSave={handleReminderSave}
+        onDelete={handleReminderDelete}
       />
     </>
   );

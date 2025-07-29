@@ -13,12 +13,15 @@ import { DoingTasksCard } from './DoingTasksCard';
 import { CompletedTasksCard } from './CompletedTasksCard';
 import { TomorrowTasksCard } from './TomorrowTasksCard';
 import { MeetingsCard } from './MeetingsCard';
+import { RoutineCard } from './RoutineCard';
 import { PomodoroTimer } from './PomodoroTimer';
 import { SettingsModal } from './SettingsModal';
 import { StartDayModal } from './StartDayModal';
 import { EndDayModal } from './EndDayModal';
+import { TaskProvider } from './DragDropContext';
+import { ObjectiveProvider, useObjectiveContext } from './ObjectiveContext';
 
-export default function App() {
+function MainApp() {
   const [dayStarted, setDayStarted] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showStartDay, setShowStartDay] = useState(false);
@@ -30,6 +33,9 @@ export default function App() {
     completedPomodoros: 4,
     targetPomodoros: 8
   });
+
+  const { getObjectiveStats } = useObjectiveContext();
+  const objectiveStats = getObjectiveStats();
 
   // Mock work schedule
   const workSchedule = {
@@ -108,7 +114,7 @@ export default function App() {
         </div>
 
         {/* Progress Bars */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <Card className="p-4 bg-slate-800/50 border-cyan-400/30">
             <div className="flex items-center gap-2 mb-2">
               <Clock className="w-4 h-4 text-cyan-400" />
@@ -135,6 +141,20 @@ export default function App() {
             <Progress value={(dailyStats.completedPomodoros / dailyStats.targetPomodoros) * 100} className="h-2 bg-slate-700" />
             <p className="text-xs text-slate-400 mt-1">{dailyStats.completedPomodoros}/{dailyStats.targetPomodoros} pomodoros</p>
           </Card>
+
+          <Card className="p-4 bg-slate-800/50 border-cyan-400/30">
+            <div className="flex items-center gap-2 mb-2">
+              <Target className="w-4 h-4 text-cyan-400" />
+              <span className="text-cyan-400">Monthly Objectives</span>
+            </div>
+            <Progress 
+              value={objectiveStats.totalThisMonth > 0 ? (objectiveStats.achievedThisMonth / objectiveStats.totalThisMonth) * 100 : 0} 
+              className="h-2 bg-slate-700" 
+            />
+            <p className="text-xs text-slate-400 mt-1">
+              {objectiveStats.achievedThisMonth}/{objectiveStats.totalThisMonth} achieved this month
+            </p>
+          </Card>
         </div>
       </div>
 
@@ -157,6 +177,7 @@ export default function App() {
             <TomorrowTasksCard />
           </div>
           <NotesCard />
+          <RoutineCard />
         </div>
 
         {/* Right Column - Backlog & Timer */}
@@ -174,7 +195,17 @@ export default function App() {
         onOpenChange={setShowEndDay} 
         onEndDay={() => setDayStarted(false)}
         stats={dailyStats}
-      />
-    </div>
+              />
+      </div>
+    );
+  }
+
+export default function App() {
+  return (
+    <ObjectiveProvider>
+      <TaskProvider>
+        <MainApp />
+      </TaskProvider>
+    </ObjectiveProvider>
   );
 } 

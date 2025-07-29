@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Calendar, Clock, Users, AlertCircle, Plus } from 'lucide-react';
 import { CreateMeetingModal } from './CreateMeetingModal';
+import { MeetingDetailModal } from './MeetingDetailModal';
 
 interface Meeting {
   id: string;
@@ -17,6 +18,8 @@ interface Meeting {
 
 export function MeetingsCard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [alerts, setAlerts] = useState<string[]>([]);
   
   // Mock meetings data
@@ -92,6 +95,21 @@ export function MeetingsCard() {
     return () => clearInterval(interval);
   }, [meetings]);
 
+  const handleMeetingClick = (meeting: any) => {
+    setSelectedMeeting(meeting);
+    setShowMeetingModal(true);
+  };
+
+  const handleMeetingSave = (updatedMeeting: any) => {
+    // In a real app, this would update the meetings state/API
+    console.log('Updating meeting:', updatedMeeting);
+  };
+
+  const handleMeetingDelete = (meetingId: string) => {
+    // In a real app, this would remove the meeting from state/API
+    console.log('Deleting meeting:', meetingId);
+  };
+
   return (
     <>
       <Card className="bg-slate-800/50 border-pink-400/30">
@@ -124,11 +142,12 @@ export function MeetingsCard() {
               return (
                 <div 
                   key={meeting.id} 
-                  className={`p-3 rounded-lg border transition-colors ${
+                  className={`p-3 rounded-lg border transition-colors cursor-pointer ${
                     isUpcoming 
-                      ? 'bg-red-400/10 border-red-400/50' 
+                      ? 'bg-red-400/10 border-red-400/50 hover:border-red-400/70' 
                       : 'bg-slate-700/50 border-slate-600 hover:border-pink-400/50'
                   }`}
+                  onClick={() => handleMeetingClick(meeting)}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <h4 className="text-white font-medium flex items-center gap-2">
@@ -173,6 +192,14 @@ export function MeetingsCard() {
       <CreateMeetingModal 
         open={showCreateModal} 
         onOpenChange={setShowCreateModal} 
+      />
+
+      <MeetingDetailModal
+        open={showMeetingModal}
+        onOpenChange={setShowMeetingModal}
+        meeting={selectedMeeting}
+        onSave={handleMeetingSave}
+        onDelete={handleMeetingDelete}
       />
     </>
   );
