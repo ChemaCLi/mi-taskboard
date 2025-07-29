@@ -109,19 +109,22 @@ model Reminder {
 }
 
 model Meeting {
-  id            String    @id @default(cuid())
+  id            String      @id @default(cuid())
   title         String
   description   String?
   datetime      DateTime
-  duration      Int?      // Duration in minutes
-  alertEnabled  Boolean   @default(true)
-  alertMinutes  Int       @default(5) // Alert 5 minutes before
-  completed     Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  duration      Int?        // Duration in minutes
+  alertEnabled  Boolean     @default(true)
+  alertMinutes  Int         @default(5) // Alert 5 minutes before
+  completed     Boolean     @default(false)
+  participants  String[]    // Array of participant names
+  location      String?     // Meeting location or virtual space
+  type          MeetingType @default(other)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
   
   userId        String
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("meetings")
 }
@@ -254,6 +257,13 @@ enum ObjectiveStatus {
   INTERRUPTED
   ARCHIVED
   PAUSED
+}
+
+enum MeetingType {
+  standup
+  review
+  planning
+  other
 }
 
 enum LogType {

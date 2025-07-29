@@ -120,17 +120,41 @@ export function ModalsWrapper() {
 
   // Meeting modal handlers
   const handleMeetingSave = async (meetingData: any) => {
-    if (modals.meetings.mode === 'create') {
-      await missionData.meetings.create(meetingData);
-    } else if (modals.meetings.mode === 'edit' && modals.meetings.meetingId) {
-      await missionData.meetings.update(modals.meetings.meetingId, meetingData);
+    try {
+      if (modals.meetings.mode === 'create') {
+        console.log('Creating new meeting:', meetingData);
+        await missionData.meetings.create(meetingData);
+      } else if ((modals.meetings.mode === 'edit' || modals.meetings.mode === 'detail') && modals.meetings.meetingId) {
+        console.log('Updating meeting:', modals.meetings.meetingId, meetingData);
+        // Ensure we have the meeting ID in the data
+        const updateData = {
+          ...meetingData,
+          id: modals.meetings.meetingId
+        };
+        await missionData.meetings.update(modals.meetings.meetingId, updateData);
+      } else {
+        console.error('Invalid meeting save operation:', {
+          mode: modals.meetings.mode,
+          meetingId: modals.meetings.meetingId,
+          hasMeetingData: !!meetingData
+        });
+      }
+      modals.meetings.close();
+    } catch (error) {
+      console.error('Error saving meeting:', error);
+      // Don't close modal on error so user can retry
     }
-    modals.meetings.close();
   };
 
   const handleMeetingDelete = async (meetingId: string) => {
-    await missionData.meetings.delete(meetingId);
-    modals.meetings.close();
+    try {
+      console.log('Deleting meeting:', meetingId);
+      await missionData.meetings.delete(meetingId);
+      modals.meetings.close();
+    } catch (error) {
+      console.error('Error deleting meeting:', error);
+      // Don't close modal on error so user can retry
+    }
   };
 
   // Reminder modal handlers
@@ -216,6 +240,7 @@ export function ModalsWrapper() {
         <CreateMeetingModal
           open={modals.meetings.isOpen}
           onOpenChange={(open) => !open && modals.meetings.close()}
+          onSave={handleMeetingSave} // Pass centralized save handler
         />
       )}
 

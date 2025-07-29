@@ -64,6 +64,9 @@ interface Meeting {
   alertEnabled: boolean;
   alertMinutes: number;
   completed: boolean;
+  participants?: string[];
+  location?: string;
+  type?: 'standup' | 'review' | 'planning' | 'other';
   createdAt: string;
   updatedAt: string;
   userId: string;

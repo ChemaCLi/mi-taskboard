@@ -8,13 +8,13 @@ import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { CalendarIcon, Calendar as CalendarIcon2, Users, Save, Trash2, Clock, AlertCircle, MapPin } from 'lucide-react';
+import { CalendarIcon, Calendar as CalendarIcon2, Users, Save, Trash2, Clock, AlertCircle, MapPin, Loader2 } from 'lucide-react';
 
 interface Meeting {
   id: string;
   title: string;
   description?: string;
-  datetime: Date;
+  datetime: Date | string;
   duration?: number;
   alertEnabled: boolean;
   alertMinutes: number;
@@ -22,8 +22,8 @@ interface Meeting {
   participants?: string[];
   location?: string;
   type?: 'standup' | 'review' | 'planning' | 'other';
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 interface MeetingDetailModalProps {
@@ -51,9 +51,12 @@ export function MeetingDetailModal({ open, onOpenChange, meeting, onSave, onDele
     }
   );
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [selectedTime, setSelectedTime] = useState(() => {
     if (meeting?.datetime) {
-      const date = meeting.datetime;
+      const date = new Date(meeting.datetime); // Convert string to Date if needed
       return {
         hours: date.getHours().toString().padStart(2, '0'),
         minutes: date.getMinutes().toString().padStart(2, '0')
@@ -66,38 +69,71 @@ export function MeetingDetailModal({ open, onOpenChange, meeting, onSave, onDele
 
   React.useEffect(() => {
     if (meeting) {
-      setFormData(meeting);
-      const date = meeting.datetime;
+      // Convert string dates to Date objects if needed
+      const updatedMeeting = {
+        ...meeting,
+        datetime: meeting.datetime ? (typeof meeting.datetime === 'string' ? new Date(meeting.datetime) : meeting.datetime) : new Date(),
+      };
+      setFormData(updatedMeeting);
+      
+      const date = new Date(meeting.datetime); // Convert string to Date if needed
       setSelectedTime({
         hours: date.getHours().toString().padStart(2, '0'),
         minutes: date.getMinutes().toString().padStart(2, '0')
       });
+      setError(null);
     }
   }, [meeting]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Combine date and time
-    const newDate = new Date(formData.datetime);
-    newDate.setHours(parseInt(selectedTime.hours), parseInt(selectedTime.minutes), 0, 0);
-    
-    const finalData = {
-      ...formData,
-      datetime: newDate
-    };
-    
-    if (onSave) {
-      onSave(finalData);
+    if (!formData.title.trim()) {
+      setError('Meeting title is required');
+      return;
     }
-    onOpenChange(false);
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Combine date and time
+      const newDate = new Date(formData.datetime);
+      newDate.setHours(parseInt(selectedTime.hours), parseInt(selectedTime.minutes), 0, 0);
+      
+      const finalData = {
+        ...formData,
+        title: formData.title.trim(),
+        description: formData.description?.trim() || '',
+        datetime: newDate.toISOString(), // Convert back to ISO string for API
+        location: formData.location?.trim() || '',
+        participants: Array.isArray(formData.participants) ? formData.participants : []
+      };
+      
+      if (onSave) {
+        await onSave(finalData);
+      }
+    } catch (error) {
+      console.error('Error saving meeting:', error);
+      setError('Failed to save meeting. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDelete = () => {
-    if (onDelete && meeting) {
-      onDelete(meeting.id);
+  const handleDelete = async () => {
+    if (!onDelete || !meeting) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await onDelete(meeting.id);
+    } catch (error) {
+      console.error('Error deleting meeting:', error);
+      setError('Failed to delete meeting. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-    onOpenChange(false);
   };
 
   const addParticipant = () => {
@@ -161,18 +197,18 @@ export function MeetingDetailModal({ open, onOpenChange, meeting, onSave, onDele
 
   if (!open) return null;
 
-  const timeUntil = getTimeUntil(formData.datetime);
-  const urgencyColor = getUrgencyColor(formData.datetime);
-  const isStartingSoon = isUpcoming(formData.datetime);
-  const endTime = new Date(formData.datetime.getTime() + (formData.duration || 0) * 60 * 1000);
+  const formDate = new Date(formData.datetime); // Ensure it's a Date object
+  const timeUntil = getTimeUntil(formDate);
+  const urgencyColor = getUrgencyColor(formDate);
+  const isStartingSoon = isUpcoming(formDate);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-slate-900 border-slate-600 max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-white flex items-center gap-2">
-            <CalendarIcon2 className="w-5 h-5 text-pink-400" />
-            {meeting ? 'Edit Meeting' : 'Meeting Details'}
+            <Clock className="w-5 h-5 text-cyan-400" />
+            {meeting ? 'Neural Briefing Protocol' : 'Briefing Details'}
             {formData.type && (
               <Badge variant="outline" className={getMeetingTypeColor(formData.type)}>
                 {formData.type}
@@ -195,150 +231,133 @@ export function MeetingDetailModal({ open, onOpenChange, meeting, onSave, onDele
           </DialogTitle>
         </DialogHeader>
         
+        {error && (
+          <div className="flex items-center gap-2 p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
+            <AlertCircle className="w-4 h-4 text-red-400" />
+            <span className="text-red-400 text-sm">{error}</span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <Label htmlFor="title" className="text-white">Briefing Subject</Label>
+            <Input
+              id="title"
+              value={formData.title}
+              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              placeholder="Enter briefing subject"
+              className="bg-slate-800 border-slate-600 text-white"
+              disabled={isLoading}
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="description" className="text-white">Mission Brief</Label>
+            <Textarea
+              id="description"
+              value={formData.description || ''}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              placeholder="Briefing agenda and strategic objectives..."
+              className="bg-slate-800 border-slate-600 text-white"
+              disabled={isLoading}
+              rows={3}
+            />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="title" className="text-white">Meeting Title</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  placeholder="Enter meeting title..."
-                  className="bg-slate-800 border-slate-600 text-white"
-                  required
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="description" className="text-white">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  placeholder="Meeting agenda or description..."
-                  className="bg-slate-800 border-slate-600 text-white"
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="type" className="text-white">Meeting Type</Label>
-                  <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value as any})}>
-                    <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="standup">Standup</SelectItem>
-                      <SelectItem value="review">Review</SelectItem>
-                      <SelectItem value="planning">Planning</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="duration" className="text-white">Duration (minutes)</Label>
-                  <Input
-                    id="duration"
-                    type="number"
-                    min="1"
-                    value={formData.duration}
-                    onChange={(e) => setFormData({...formData, duration: Number(e.target.value)})}
-                    className="bg-slate-800 border-slate-600 text-white"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="location" className="text-white">Location</Label>
-                <Input
-                  id="location"
-                  value={formData.location}
-                  onChange={(e) => setFormData({...formData, location: e.target.value})}
-                  placeholder="Conference room, Zoom link, etc."
-                  className="bg-slate-800 border-slate-600 text-white"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="date" className="text-white">Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.datetime ? formData.datetime.toLocaleDateString() : "Select date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600">
-                    <Calendar
-                      mode="single"
-                      selected={formData.datetime}
-                      onSelect={(date) => setFormData({...formData, datetime: date || new Date()})}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div>
-                <Label className="text-white">Start Time</Label>
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    min="0"
-                    max="23"
-                    value={selectedTime.hours}
-                    onChange={(e) => setSelectedTime({...selectedTime, hours: e.target.value.padStart(2, '0')})}
-                    className="bg-slate-800 border-slate-600 text-white"
-                    placeholder="HH"
-                  />
-                  <span className="text-white self-center">:</span>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="59"
-                    value={selectedTime.minutes}
-                    onChange={(e) => setSelectedTime({...selectedTime, minutes: e.target.value.padStart(2, '0')})}
-                    className="bg-slate-800 border-slate-600 text-white"
-                    placeholder="MM"
-                  />
-                </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  End time: {endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
-
-              <div>
-                <Label className="text-white">Participants</Label>
-                <div className="flex gap-2 mb-2">
-                  <Input
-                    value={newParticipant}
-                    onChange={(e) => setNewParticipant(e.target.value)}
-                    placeholder="Add participant..."
-                    className="bg-slate-800 border-slate-600 text-white"
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addParticipant())}
-                  />
-                  <Button type="button" onClick={addParticipant} variant="outline" className="border-slate-600">
-                    Add
+            <div>
+              <Label htmlFor="date" className="text-white">Neural Link Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start bg-slate-800 border-slate-600 text-white hover:bg-slate-700"
+                    disabled={isLoading}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formData.datetime ? new Date(formData.datetime).toLocaleDateString() : "Select date"}
                   </Button>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {formData.participants?.map((participant) => (
-                    <Badge key={participant} variant="secondary" className="cursor-pointer" onClick={() => removeParticipant(participant)}>
-                      <Users className="w-3 h-3 mr-1" />
-                      {participant} ×
-                    </Badge>
-                  ))}
-                </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 bg-slate-800 border-slate-600">
+                  <Calendar
+                    mode="single"
+                    selected={new Date(formData.datetime)}
+                    onSelect={(date) => setFormData({...formData, datetime: date || new Date()})}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div>
+              <Label className="text-white">Sync Time</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  min="0"
+                  max="23"
+                  value={selectedTime.hours}
+                  onChange={(e) => setSelectedTime({...selectedTime, hours: e.target.value.padStart(2, '0')})}
+                  className="bg-slate-800 border-slate-600 text-white"
+                  placeholder="HH"
+                  disabled={isLoading}
+                />
+                <span className="text-white self-center">:</span>
+                <Input
+                  type="number"
+                  min="0"
+                  max="59"
+                  value={selectedTime.minutes}
+                  onChange={(e) => setSelectedTime({...selectedTime, minutes: e.target.value.padStart(2, '0')})}
+                  className="bg-slate-800 border-slate-600 text-white"
+                  placeholder="MM"
+                  disabled={isLoading}
+                />
               </div>
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="type" className="text-white">Mission Type</Label>
+              <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value as any})} disabled={isLoading}>
+                <SelectTrigger className="bg-slate-800 border-slate-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 border-slate-600">
+                  <SelectItem value="standup">Daily Sync</SelectItem>
+                  <SelectItem value="review">Strategic Review</SelectItem>
+                  <SelectItem value="planning">Mission Planning</SelectItem>
+                  <SelectItem value="other">Custom Protocol</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="duration" className="text-white">Session Duration</Label>
+              <Input
+                id="duration"
+                type="number"
+                min="1"
+                value={formData.duration}
+                onChange={(e) => setFormData({...formData, duration: Number(e.target.value)})}
+                className="bg-slate-800 border-slate-600 text-white"
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="location" className="text-white">Neural Hub Location</Label>
+            <Input
+              id="location"
+              value={formData.location}
+              onChange={(e) => setFormData({...formData, location: e.target.value})}
+              placeholder="Briefing location or virtual space"
+              className="bg-slate-800 border-slate-600 text-white"
+              disabled={isLoading}
+            />
           </div>
 
           <div className="space-y-4">
@@ -349,13 +368,14 @@ export function MeetingDetailModal({ open, onOpenChange, meeting, onSave, onDele
                 checked={formData.alertEnabled}
                 onChange={(e) => setFormData({...formData, alertEnabled: e.target.checked})}
                 className="rounded bg-slate-800 border-slate-600"
+                disabled={isLoading}
               />
-              <Label htmlFor="alertEnabled" className="text-white">Enable meeting alert</Label>
+              <Label htmlFor="alertEnabled" className="text-white">Enable neural alert</Label>
             </div>
 
             {formData.alertEnabled && (
               <div>
-                <Label htmlFor="alertMinutes" className="text-white">Alert me this many minutes before</Label>
+                <Label htmlFor="alertMinutes" className="text-white">Alert minutes before sync</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     id="alertMinutes"
@@ -364,11 +384,12 @@ export function MeetingDetailModal({ open, onOpenChange, meeting, onSave, onDele
                     value={formData.alertMinutes}
                     onChange={(e) => setFormData({...formData, alertMinutes: Number(e.target.value)})}
                     className="bg-slate-800 border-slate-600 text-white w-24"
+                    disabled={isLoading}
                   />
                   <span className="text-slate-400">minutes</span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  You will be alerted at {new Date(formData.datetime.getTime() - formData.alertMinutes * 60 * 1000).toLocaleString()}
+                  You will be alerted at {new Date(new Date(formData.datetime).getTime() - formData.alertMinutes * 60 * 1000).toLocaleString()}
                 </p>
               </div>
             )}
@@ -380,50 +401,59 @@ export function MeetingDetailModal({ open, onOpenChange, meeting, onSave, onDele
                 checked={formData.completed}
                 onChange={(e) => setFormData({...formData, completed: e.target.checked})}
                 className="rounded bg-slate-800 border-slate-600"
+                disabled={isLoading}
               />
               <Label htmlFor="completed" className="text-white">Mark as completed</Label>
             </div>
           </div>
 
-          {formData.location && (
-            <div className="p-3 bg-slate-800/50 rounded-lg border border-slate-600">
-              <div className="flex items-center gap-2 text-slate-300">
-                <MapPin className="w-4 h-4" />
-                <span className="font-medium">Location:</span>
-                <span>{formData.location}</span>
-              </div>
-            </div>
-          )}
-
           <div className="flex justify-between">
-            <div>
-              {meeting && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleDelete}
-                  className="bg-red-600 hover:bg-red-700"
-                >
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Terminating...
+                </>
+              ) : (
+                <>
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Meeting
-                </Button>
+                  Terminate Briefing
+                </>
               )}
-            </div>
+            </Button>
+            
             <div className="flex gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 className="border-slate-600 text-white hover:bg-slate-700"
+                disabled={isLoading}
               >
-                Cancel
+                Abort
               </Button>
               <Button
                 type="submit"
-                className="bg-pink-600 hover:bg-pink-700 text-white"
+                className="bg-cyan-600 hover:bg-cyan-700 text-white"
+                disabled={isLoading}
               >
-                <Save className="w-4 h-4 mr-2" />
-                Save Meeting
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Syncing Neural Data...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Protocol
+                  </>
+                )}
               </Button>
             </div>
           </div>
