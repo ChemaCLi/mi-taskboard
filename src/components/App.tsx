@@ -187,8 +187,8 @@ function MainApp() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Left Column - Strategic */}
         <div className="lg:col-span-1 space-y-6">
+          <BacklogCard />
           <ObjectivesCard />
-          <MeetingsCard />
         </div>
 
         {/* Center Column - Operational */}
@@ -205,10 +205,10 @@ function MainApp() {
           <RoutineCard />
         </div>
 
-        {/* Right Column - Backlog & Timer */}
+        {/* Right Column - Timer & Briefings */}
         <div className="lg:col-span-1 space-y-6">
           <PomodoroTimer />
-          <BacklogCard />
+          <MeetingsCard />
         </div>
       </div>
 
