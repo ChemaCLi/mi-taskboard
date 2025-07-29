@@ -87,7 +87,7 @@ export const POST: APIRoute = async ({ request }) => {
     const data = await request.json();
     
     // Validate required fields
-    if (!data.content) {
+    if (data.content === null || data.content === undefined) {
       return new Response(JSON.stringify({
         success: false,
         error: 'Content is required'
